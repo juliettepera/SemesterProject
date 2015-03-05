@@ -7,6 +7,7 @@
 #include <OpenFlipper/BasePlugin/MouseInterface.hh>
 #include <OpenFlipper/BasePlugin/PickingInterface.hh>
 #include "OpenFlipper/BasePlugin/PluginFunctions.hh"
+#include <OpenFlipper/BasePlugin/LoadSaveInterface.hh>
 #include <OpenFlipper/common/Types.hh>
 
 #include <ObjectTypes/MeshObject/MeshObjectT.hh>
@@ -14,10 +15,14 @@
 #include <ObjectTypes/TriangleMesh/TriangleMesh.hh>
 
 #include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
+#include <OpenMesh/Core/Mesh/AttribKernelT.hh>
+#include <OpenMesh/Core/IO/MeshIO.hh>
 
-//typedef OpenMesh::PolyMesh_ArrayKernelT<>  MyMesh;
+#include "cmath"
 
-class mmPlugin : public QObject, BaseInterface, ToolboxInterface, LoggingInterface, MouseInterface, PickingInterface
+typedef OpenMesh::PolyMesh_ArrayKernelT<>  MyMesh;
+
+class mmPlugin : public QObject, BaseInterface, ToolboxInterface, LoggingInterface, MouseInterface, PickingInterface, LoadSaveInterface
 {
   Q_OBJECT
   Q_INTERFACES(BaseInterface)
@@ -25,18 +30,13 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, LoggingInterfa
   Q_INTERFACES(LoggingInterface)
   Q_INTERFACES(MouseInterface)
   Q_INTERFACES(PickingInterface)
+  Q_INTERFACES(LoadSaveInterface)
 
   private:
-       QLineEdit* filePicked;
-       QLineEdit* XPicked;
-       QLineEdit* YPicked;
-       QLineEdit* ZPicked;
-
-       double m_XPicked;
-       double m_YPicked;
-       double m_ZPicked;
-       BaseObjectData* m_ObjectPicked;
        int m_idNodePicked;
+       OpenMesh::Vec3d m_hitPoint;
+       BaseObjectData* m_ObjectPicked;
+       std::vector<PolyMesh::VertexIter> m_vFixed;
 
   public:
         // BaseInterface
@@ -44,12 +44,15 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, LoggingInterfa
         QString description( ) { return (QString("Move vertex of a mesh and update all the other")); };
 
         // MoveMeshInterface
-        void updateLineEdit();
-        void workWithMesh();
+        int createExampleMesh();
+        void findSelectVertex();
 
    public slots:
         // MoveMeshInterface
+        void loadMesh();
         void pickVertex();
+        void showFixedPoints();
+        void discretizeLenght();
 
    private slots:
         // BaseInterface

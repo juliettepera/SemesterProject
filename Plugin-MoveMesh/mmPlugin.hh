@@ -37,6 +37,8 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, LoggingInterfa
        OpenMesh::Vec3d m_hitPoint;
        BaseObjectData* m_ObjectPicked;
        std::vector<PolyMesh::VertexIter> m_vFixed;
+       PolyMesh* m_PickedMesh;
+       int m_discretize;
 
   public:
         // BaseInterface

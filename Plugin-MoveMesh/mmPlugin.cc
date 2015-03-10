@@ -5,8 +5,8 @@ void mmPlugin::initializePlugin()
    //**********************************************************************************************
    m_idNodePicked = -1;
    m_hitPoint = OpenMesh::Vec3d(0,0,0);
-   m_ObjectPicked = -1 ;
    m_vFixed.clear();
+   m_discretize = 2;
 
    //**********************************************************************************************
    QWidget* toolBox = new QWidget();
@@ -14,7 +14,7 @@ void mmPlugin::initializePlugin()
    QPushButton* loadButton = new QPushButton("&Load",toolBox);
    QPushButton* pickButton = new QPushButton("&Pick",toolBox);
    QPushButton* fixButton = new QPushButton("&Fixed",toolBox);
-   QPushButton* discretButton = QPushButton("&Discretize",toolBox);
+   QPushButton* discretButton = new QPushButton("&Discretize",toolBox);
     
    QGridLayout* layout = new QGridLayout(toolBox);
 
@@ -284,17 +284,17 @@ void mmPlugin::findSelectVertex()
         {
             if(o_it->dataType(DATA_POLY_MESH))
             {
-                PolyMesh* pickedMesh = PluginFunctions::polyMesh(*o_it);
+                m_PickedMesh = PluginFunctions::polyMesh(*o_it);
 
                 PolyMesh::VertexIter v_it;
-                PolyMesh::VertexIter v_end = pickedMesh->vertices_end();
+                PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
 
                 OpenMesh::Vec3d ActualPoint;
 
-                for (v_it = pickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+                for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
                 {
 
-                    ActualPoint = pickedMesh->point( *v_it );
+                    ActualPoint = m_PickedMesh->point( *v_it );
                     double X = fabs(double(ActualPoint[0])-double(m_hitPoint[0]));
                     double Y = fabs(double(ActualPoint[1])-double(m_hitPoint[1]));
 
@@ -316,36 +316,109 @@ void mmPlugin::findSelectVertex()
 //**********************************************************************************************
 void mmPlugin::showFixedPoints()
 {
-      for (PluginFunctions::ObjectIterator o_it(PluginFunctions::TARGET_OBJECTS); o_it != PluginFunctions::objectsEnd();++o_it)
-      {
-        if(o_it.index()==m_ObjectPicked)
-        {
-            if(o_it->dataType(DATA_POLY_MESH))
-            {
-                PolyMesh* pickedMesh = PluginFunctions::polyMesh(*o_it);
+       PolyMesh::VertexIter v_it;
+       PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
 
-                PolyMesh::VertexIter v_it;
-                PolyMesh::VertexIter v_end = pickedMesh->vertices_end();
-
-                for (v_it = pickedMesh->vertices_begin(); v_it != v_end; ++v_it)
-                {
-                    for(int i=0 ; i < m_vFixed.size() ; i++)
-                    {
-                        if( v_it == m_vFixed.at(i) )
-                        {
-                            std::cout << "coloring point #" << v_it << std::endl;
-                            pickedMesh->set_color(*v_it, PolyMesh::Color(255,0,0,0.3) );
-                        }
-                    }
-                }
-             }
-         }
+       for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+       {
+           for(int i=0 ; i < m_vFixed.size() ; i++)
+           {
+               if( v_it == m_vFixed.at(i) )
+               {
+                  std::cout << "coloring point #" << v_it << std::endl;
+                  m_PickedMesh->set_color(*v_it, PolyMesh::Color(255,0,0,0.3) );
+               }
+           }
        }
+       emit updatedObject(m_ObjectPicked->id());
 }
 
 //**********************************************************************************************
 void mmPlugin::discretizeLenght()
 {
+       std::cout << "vertex " << m_PickedMesh->n_vertices() << " edges " << m_PickedMesh->n_edges() << std::endl;
+
+       PolyMesh::HalfedgeIter he_it;
+       PolyMesh::HalfedgeIter he_end = m_PickedMesh->halfedges_end();
+
+       PolyMesh::VertexHandle v1, v2;
+       PolyMesh::EdgeHandle e;
+
+       PolyMesh::Point X1, X2, newP1, newP2;
+       PolyMesh::VertexHandle newV1, newV2;
+       double length = 0;
+       double delta = 0;
+
+       for( he_it = m_PickedMesh->halfedges_begin() ; he_it != he_end ; he_it++ )
+       {
+            v1 = m_PickedMesh->to_vertex_handle(he_it);
+            X1 = m_PickedMesh->point(v1);
+
+            v2 = m_PickedMesh->from_vertex_handle(he_it);
+            X2 = m_PickedMesh->point(v2);
+
+            e = m_PickedMesh->edge_handle(he_it);
+            length = m_PickedMesh->calc_edge_length(e);
+            delta = fabs(X1[0]-X2[0]);
+
+           /* std::cout << "he #" << he_it << " e #" << e << " length " << length << std::endl;
+            std::cout << " to #" << v1 << "x:" << X1[0] << " from #" << v2 << "x:" << X2[0] << std::endl;
+
+            std::cout << "delta " << delta << std::endl;
+            std::cout << "new edge " << delta/(m_discretize+1) << std::endl;*/
+
+            m_PickedMesh->delete_edge(e,false);
+
+            if( X1[0] < X2[0] )
+            {
+                newP1[0]=X1[0]+delta/(m_discretize+1);
+                newP2[0]=X1[0]+2*delta/(m_discretize+1);
+
+                if( X1[1] < X2[1] )
+                {
+                    newP1[1]=X1[1]+delta/(m_discretize+1);
+                    newP2[1]=X1[1]+2*delta/(m_discretize+1);
+                }
+                else
+                {
+                    newP1[1]=X2[1]+delta/(m_discretize+1);
+                    newP2[1]=X2[1]+2*delta/(m_discretize+1);
+                }
+
+                newV1 = m_PickedMesh->new_vertex(newP1);
+                newV2 = m_PickedMesh->new_vertex(newP2);
+
+                m_PickedMesh->new_edge(v1,newV1);
+                m_PickedMesh->new_edge(newV1,newV2);
+                m_PickedMesh->new_edge(newV2,v2);
+            }
+            else
+            {
+                newP1[0]=X2[0]+delta/(m_discretize+1);
+                newP2[0]=X2[0]+2*delta/(m_discretize+1);
+
+                if( X1[1] < X2[1] )
+                {
+                   newP1[1]=X1[1]+delta/(m_discretize+1);
+                   newP2[1]=X1[1]+2*delta/(m_discretize+1);
+                }
+                else
+                {
+                   newP1[1]=X2[1]+delta/(m_discretize+1);
+                   newP2[1]=X2[1]+2*delta/(m_discretize+1);
+                }
+
+                newV1 = m_PickedMesh->new_vertex(newP1);
+                newV2 = m_PickedMesh->new_vertex(newP2);
+
+                m_PickedMesh->new_edge(v1,newV1);
+                m_PickedMesh->new_edge(newV1,newV2);
+                m_PickedMesh->new_edge(newV2,v2);
+            }
+            he_it++;
+       }
+
+       std::cout << "vertex " << m_PickedMesh->n_vertices() << " edges " << m_PickedMesh->n_edges() << std::endl;
 
 }
 

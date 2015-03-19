@@ -7,17 +7,16 @@
 #include <OpenFlipper/BasePlugin/MouseInterface.hh>
 #include <OpenFlipper/BasePlugin/PickingInterface.hh>
 #include <OpenFlipper/BasePlugin/LoadSaveInterface.hh>
-#include "OpenFlipper/BasePlugin/PluginFunctions.hh"
+#include <OpenFlipper/BasePlugin/PluginFunctions.hh>
+#include <OpenFlipper/BasePlugin/RPCInterface.hh>
 
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>
 
 #include "solvec.h"
-#include "cmath"
-
-//typedef OpenMesh::PolyMesh_ArrayKernelT<>  MyMesh;
+#include <cmath>
 
 class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
-                        LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface
+                        LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface, RPCInterface
 {
   Q_OBJECT
   Q_INTERFACES(BaseInterface)
@@ -26,6 +25,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
   Q_INTERFACES(MouseInterface)
   Q_INTERFACES(PickingInterface)
   Q_INTERFACES(LoadSaveInterface)
+  Q_INTERFACES(RPCInterface)
 
   private:
 
@@ -59,7 +59,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        // MoveMesh
        int createNewObject();
        void findSelectVertex();
-       void showFixedPoints();
 
    public slots:
         int addQuadrimesh() ;

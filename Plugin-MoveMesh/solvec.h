@@ -2,8 +2,10 @@
 #define SOLVEC_H
 
 // ShapeOp Libraries
+#include "../ShapeOp/libShapeOp/src/Constraint.h"
 
 // OpenMesh Libraries
+#include <ObjectTypes/PolyMesh/PolyMesh.hh>
 
 // Other Libraries
 #include <string>
@@ -15,9 +17,9 @@ class solvec
     public:
         solvec();
         void hello();
+        int getPoints(PolyMesh* mesh, std::vector<PolyMesh::VertexIter> vertexFixed);
 
     private:
-        int testOP();
 };
 
 #endif // SOLVEC_H

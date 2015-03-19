@@ -67,6 +67,9 @@ void mmPlugin::pluginsInitialized()
 }
 
 //**********************************************************************************************
+// Create a new quad mesh composed of X vertices, then save it and load it to the viewer
+// Code inspired from the PrimitivesGenerator plugin
+//**********************************************************************************************
 int mmPlugin::createNewObject()
 {
   int objectId = -1;
@@ -297,6 +300,9 @@ int mmPlugin::addQuadrimesh()
 }
 
 //**********************************************************************************************
+// Select the number of fix points we want, then allow th selection with the pick button
+// We add a sphere on each fix vertex, using the PrimitivesGenerator plugin
+//**********************************************************************************************
 void mmPlugin::changeFixPointValue()
 {
     m_FixPoint = fixPointSpin->value();
@@ -333,13 +339,7 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             if ( PluginFunctions::scenegraphPick(ACG::SceneGraph::PICK_ANYTHING,_event->pos(), node_idx, target_idx, &hitPoint) )
             {
                m_hitPoint = hitPoint;
-
-               // Get picked object
-               BaseObjectData* objectPicked;
-               if ( ! PluginFunctions::getPickedObject(node_idx, objectPicked) )
-               {
-                    emit log(LOGINFO, "Picking failed");
-               }
+               findSelectVertex();
             }
             else
             {
@@ -348,8 +348,7 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
        }
      }
      PluginFunctions::actionMode(Viewer::ExamineMode);
-     findSelectVertex();
-     showFixedPoints();
+
 }
 
 void mmPlugin::findSelectVertex()
@@ -365,35 +364,38 @@ void mmPlugin::findSelectVertex()
           ActualPoint = m_PickedMesh->point( *v_it );
           double X = fabs(double(ActualPoint[0])-double(m_hitPoint[0]));
           double Y = fabs(double(ActualPoint[1])-double(m_hitPoint[1]));
+          double Z = fabs(double(ActualPoint[2])-double(m_hitPoint[2]));
 
-          if( (X<=0.25) && (Y<=0.25) )
+          if( (X<=0.25) && (Y<=0.25) && (Z<=0.25) )
           {
+            int check = 0;
+            for( int i = 0 ; i < m_vFixed.size() ; i++ )
+            {
+                if( v_it == m_vFixed[i] )
+                {
+                    check = -1;
+                }
+            }
+
+            if( check == 0 )
+            {
               m_vFixed.push_back(v_it);
-              std::cout << "fixing point #" << v_it << std::endl;
+              PolyMesh::Point p = m_PickedMesh->point(v_it);
+              Vector v(p[0],p[1],p[2]);
+              int val = RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
+            }
+            else
+            {
+                std::cout << "Allready fixed" << std::endl;
+            }
           }
      }
+     emit updatedObject(m_IdObject,UPDATE_ALL);
 }
 
-void mmPlugin::showFixedPoints()
-{
-       PolyMesh::VertexIter v_it;
-       PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
-
-       for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
-       {
-           for(int i=0 ; i < m_vFixed.size() ; i++)
-           {
-               if( v_it == m_vFixed.at(i) )
-               {
-                  std::cout << "coloring point #" << v_it << std::endl;
-                  m_PickedMesh->set_color(*v_it, PolyMesh::Color(255,255,0,0));
-               }
-           }
-       }
-       emit updatedObject(m_IdObject,UPDATE_ALL);
-}
-
-
+//**********************************************************************************************
+// Discretize the length of each edge with a certain number of vertex
+// Not working yet
 //**********************************************************************************************
 void mmPlugin::changeDiscretizeValue()
 {
@@ -489,6 +491,9 @@ void mmPlugin::discretizeLenght()
 
 }
 
+//**********************************************************************************************
+// Solve the Optimization
+// Not working yet
 //**********************************************************************************************
 int mmPlugin::solveOptimazation()
 {

@@ -6,11 +6,23 @@ void mmPlugin::initializePlugin()
    m_IdObject = -1;
    m_FixPoint = 4;
    m_discretize = 3;
+   m_sizeX = 5;
+   m_sizeY = 5;
    m_vFixed.clear();
    m_hitPoint = OpenMesh::Vec3d(0,0,0);
 
    //**********************************************************************************************
    QWidget* toolBox = new QWidget();
+
+   sizeXSpin = new QSpinBox(toolBox);
+   sizeXSpin->setMinimum(5);
+   sizeXSpin->setMaximum(100);
+   sizeXSpin->setValue(5);
+
+   sizeYSpin = new QSpinBox(toolBox);
+   sizeYSpin->setMinimum(5);
+   sizeYSpin->setMaximum(100);
+   sizeYSpin->setValue(5);
 
    loadButton = new QPushButton("&Load",toolBox);
    loadButton->setDisabled(true);
@@ -38,7 +50,9 @@ void mmPlugin::initializePlugin()
     
    QGridLayout* layout = new QGridLayout(toolBox);
 
-   layout->addWidget( loadButton, 1, 1);
+   layout->addWidget( sizeXSpin, 1, 1);
+   layout->addWidget( sizeYSpin, 1, 2);
+   layout->addWidget( loadButton, 1, 3);
    layout->addWidget( fixPointSpin, 2, 1);
    layout->addWidget( pickButton, 2, 2);
    layout->addWidget( discretizeSpin, 3, 1);
@@ -48,6 +62,8 @@ void mmPlugin::initializePlugin()
    layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
 
    //**********************************************************************************************
+   connect( sizeXSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeXYValue()));
+   connect( sizeYSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeXYValue()));
    connect( loadButton, SIGNAL(clicked()), this, SLOT(addQuadrimesh()));
    connect( pickButton, SIGNAL(clicked()), this, SLOT(pickVertex()));
    connect( fixPointSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeFixPointValue()));
@@ -70,6 +86,12 @@ void mmPlugin::pluginsInitialized()
 // Create a new quad mesh composed of X vertices, then save it and load it to the viewer
 // Code inspired from the PrimitivesGenerator plugin
 //**********************************************************************************************
+void mmPlugin::changeXYValue()
+{
+    m_sizeX = sizeXSpin->value();
+    m_sizeY = sizeYSpin->value();
+}
+
 int mmPlugin::createNewObject()
 {
   int objectId = -1;
@@ -88,14 +110,12 @@ int mmPlugin::createNewObject()
 
 int mmPlugin::addQuadrimesh()
 {
-    std::cout << "Hello" << std::endl;
-
   int newObject = createNewObject();
 
   PolyMeshObject* object;
   if ( !PluginFunctions::getObject(newObject,object) )
   {
-    emit log(LOGERR,"Unable to create new Object2");
+    emit log(LOGERR,"Unable to create new Object");
     return -1;
   }
   else
@@ -106,45 +126,19 @@ int mmPlugin::addQuadrimesh()
 
     m_PickedMesh->clear();
 
-    // Add 31 vertices
-    m_vphandles.resize(31);
-    m_vphandles[0] = m_PickedMesh->add_vertex(PolyMesh::Point(3,-3, 0));
-    m_vphandles[1] = m_PickedMesh->add_vertex(PolyMesh::Point(3,-1, 0));
-    m_vphandles[2] = m_PickedMesh->add_vertex(PolyMesh::Point(3, 1, 0));
-    m_vphandles[3] = m_PickedMesh->add_vertex(PolyMesh::Point(3, 3, 0));
+    int k = 0;
 
-    m_vphandles[4] = m_PickedMesh->add_vertex(PolyMesh::Point(2,-4, 0));
-    m_vphandles[5] = m_PickedMesh->add_vertex(PolyMesh::Point(2,-2, 0));
-    m_vphandles[6] = m_PickedMesh->add_vertex(PolyMesh::Point(2, 0, 0));
-    m_vphandles[7] = m_PickedMesh->add_vertex(PolyMesh::Point(2, 2, 0));
-    m_vphandles[8] = m_PickedMesh->add_vertex(PolyMesh::Point(2, 4, 0));
+    m_vphandles.resize(m_sizeX*m_sizeY);
 
-    m_vphandles[9] = m_PickedMesh->add_vertex(PolyMesh::Point(1,-3, 0));
-    m_vphandles[10] = m_PickedMesh->add_vertex(PolyMesh::Point(1,-1, 0));
-    m_vphandles[11] = m_PickedMesh->add_vertex(PolyMesh::Point(1, 1, 0));
-    m_vphandles[12] = m_PickedMesh->add_vertex(PolyMesh::Point(1, 3, 0));
-
-    m_vphandles[13] = m_PickedMesh->add_vertex(PolyMesh::Point(0,-4, 0));
-    m_vphandles[14] = m_PickedMesh->add_vertex(PolyMesh::Point(0,-2, 0));
-    m_vphandles[15] = m_PickedMesh->add_vertex(PolyMesh::Point(0, 0, 0));
-    m_vphandles[16] = m_PickedMesh->add_vertex(PolyMesh::Point(0, 2, 0));
-    m_vphandles[17] = m_PickedMesh->add_vertex(PolyMesh::Point(0, 4, 0));
-
-    m_vphandles[18] = m_PickedMesh->add_vertex(PolyMesh::Point(-1,-3, 0));
-    m_vphandles[19] = m_PickedMesh->add_vertex(PolyMesh::Point(-1,-1, 0));
-    m_vphandles[20] = m_PickedMesh->add_vertex(PolyMesh::Point(-1, 1, 0));
-    m_vphandles[21] = m_PickedMesh->add_vertex(PolyMesh::Point(-1, 3, 0));
-
-    m_vphandles[22] = m_PickedMesh->add_vertex(PolyMesh::Point(-2,-4, 0));
-    m_vphandles[23] = m_PickedMesh->add_vertex(PolyMesh::Point(-2,-2, 0));
-    m_vphandles[24] = m_PickedMesh->add_vertex(PolyMesh::Point(-2, 0, 0));
-    m_vphandles[25] = m_PickedMesh->add_vertex(PolyMesh::Point(-2, 2, 0));
-    m_vphandles[26] = m_PickedMesh->add_vertex(PolyMesh::Point(-2, 4, 0));
-
-    m_vphandles[27] = m_PickedMesh->add_vertex(PolyMesh::Point(-3,-3, 0));
-    m_vphandles[28] = m_PickedMesh->add_vertex(PolyMesh::Point(-3,-1, 0));
-    m_vphandles[29] = m_PickedMesh->add_vertex(PolyMesh::Point(-3, 1, 0));
-    m_vphandles[30] = m_PickedMesh->add_vertex(PolyMesh::Point(-3, 3, 0));
+    // add the new vertices
+    for( int i = 0 ; i < m_sizeX ; i++ )
+    {
+        for( int j = 0 ; j < m_sizeY ; j++ )
+        {
+            m_vphandles[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
+            k++;
+        }
+    }
 
     // color the points
     PolyMesh::VertexIter v_it;
@@ -154,131 +148,19 @@ int mmPlugin::addQuadrimesh()
         m_PickedMesh->set_color(*v_it, PolyMesh::Color(0,0,0,0) );
     }
 
-    // Add faces
-    m_fphandles.push_back(m_vphandles[0]);
-    m_fphandles.push_back(m_vphandles[4]);
-    m_fphandles.push_back(m_vphandles[9]);
-    m_fphandles.push_back(m_vphandles[5]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[1]);
-    m_fphandles.push_back(m_vphandles[5]);
-    m_fphandles.push_back(m_vphandles[10]);
-    m_fphandles.push_back(m_vphandles[6]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[2]);
-    m_fphandles.push_back(m_vphandles[6]);
-    m_fphandles.push_back(m_vphandles[11]);
-    m_fphandles.push_back(m_vphandles[7]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[3]);
-    m_fphandles.push_back(m_vphandles[7]);
-    m_fphandles.push_back(m_vphandles[12]);
-    m_fphandles.push_back(m_vphandles[8]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[5]);
-    m_fphandles.push_back(m_vphandles[9]);
-    m_fphandles.push_back(m_vphandles[14]);
-    m_fphandles.push_back(m_vphandles[10]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[6]);
-    m_fphandles.push_back(m_vphandles[10]);
-    m_fphandles.push_back(m_vphandles[15]);
-    m_fphandles.push_back(m_vphandles[11]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[7]);
-    m_fphandles.push_back(m_vphandles[11]);
-    m_fphandles.push_back(m_vphandles[16]);
-    m_fphandles.push_back(m_vphandles[12]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[9]);
-    m_fphandles.push_back(m_vphandles[13]);
-    m_fphandles.push_back(m_vphandles[18]);
-    m_fphandles.push_back(m_vphandles[14]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[10]);
-    m_fphandles.push_back(m_vphandles[14]);
-    m_fphandles.push_back(m_vphandles[19]);
-    m_fphandles.push_back(m_vphandles[15]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[11]);
-    m_fphandles.push_back(m_vphandles[15]);
-    m_fphandles.push_back(m_vphandles[20]);
-    m_fphandles.push_back(m_vphandles[16]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[12]);
-    m_fphandles.push_back(m_vphandles[16]);
-    m_fphandles.push_back(m_vphandles[21]);
-    m_fphandles.push_back(m_vphandles[17]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[14]);
-    m_fphandles.push_back(m_vphandles[18]);
-    m_fphandles.push_back(m_vphandles[23]);
-    m_fphandles.push_back(m_vphandles[19]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[15]);
-    m_fphandles.push_back(m_vphandles[19]);
-    m_fphandles.push_back(m_vphandles[24]);
-    m_fphandles.push_back(m_vphandles[20]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[16]);
-    m_fphandles.push_back(m_vphandles[20]);
-    m_fphandles.push_back(m_vphandles[25]);
-    m_fphandles.push_back(m_vphandles[21]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[18]);
-    m_fphandles.push_back(m_vphandles[22]);
-    m_fphandles.push_back(m_vphandles[27]);
-    m_fphandles.push_back(m_vphandles[23]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[19]);
-    m_fphandles.push_back(m_vphandles[23]);
-    m_fphandles.push_back(m_vphandles[28]);
-    m_fphandles.push_back(m_vphandles[24]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[20]);
-    m_fphandles.push_back(m_vphandles[24]);
-    m_fphandles.push_back(m_vphandles[29]);
-    m_fphandles.push_back(m_vphandles[25]);
-    m_PickedMesh->add_face(m_fphandles);
-
-    m_fphandles.clear();
-    m_fphandles.push_back(m_vphandles[21]);
-    m_fphandles.push_back(m_vphandles[25]);
-    m_fphandles.push_back(m_vphandles[30]);
-    m_fphandles.push_back(m_vphandles[26]);
-    m_PickedMesh->add_face(m_fphandles);
+    // Add the faces
+    for( int i = 0 ; i < m_sizeX-1 ; i++ )
+    {
+       for( int j = 0 ; j < m_sizeY-1 ; j++ )
+       {
+           m_fphandles.clear();
+           m_fphandles.push_back(m_vphandles[j*m_sizeX+i]);
+           m_fphandles.push_back(m_vphandles[j*m_sizeX+(i+1)]);
+           m_fphandles.push_back(m_vphandles[(j+1)*m_sizeX+(i+1)]);
+           m_fphandles.push_back(m_vphandles[(j+1)*m_sizeX+i]);
+           m_PickedMesh->add_face(m_fphandles);
+       }
+    }
 
     m_PickedMesh->update_normals();
 
@@ -292,6 +174,8 @@ int mmPlugin::addQuadrimesh()
     fixPointSpin->setEnabled(true);
     pickButton->setEnabled(true);
     loadButton->setDisabled(true);
+    sizeXSpin->setDisabled(true);
+    sizeYSpin->setDisabled(true);
 
     return newObject;
   }
@@ -347,7 +231,20 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             }
        }
      }
-     PluginFunctions::actionMode(Viewer::ExamineMode);
+
+     if( m_vFixed.size() < m_FixPoint )
+     {
+        PluginFunctions::actionMode(Viewer::PickingMode);
+        PluginFunctions::pickMode("MyPickMode");
+     }
+     else
+     {
+        std::cout << "no more fix points possible" << std::endl;
+        pickButton->setDisabled(true);
+        discretButton->setEnabled(true);
+        solveButton->setEnabled(true);
+        PluginFunctions::actionMode(Viewer::ExamineMode);
+     }
 
 }
 
@@ -498,6 +395,7 @@ void mmPlugin::discretizeLenght()
 int mmPlugin::solveOptimazation()
 {
     m_mySolver.hello();
+    m_mySolver.getPoints(m_PickedMesh,m_vFixed);
 }
 
 //**********************************************************************************************

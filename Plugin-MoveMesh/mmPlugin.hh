@@ -41,9 +41,13 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
 
        int m_FixPoint;
        int m_discretize;
+       int m_sizeX;
+       int m_sizeY;
 
        solvec m_mySolver;
 
+       QSpinBox* sizeXSpin;
+       QSpinBox* sizeYSpin;
        QPushButton* loadButton;
        QSpinBox* fixPointSpin;
        QPushButton* pickButton;
@@ -61,7 +65,8 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        void findSelectVertex();
 
    public slots:
-        int addQuadrimesh() ;
+        int addQuadrimesh();
+        void changeXYValue();
         void pickVertex();
         void changeFixPointValue();
         void discretizeLenght();

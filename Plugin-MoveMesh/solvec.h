@@ -2,7 +2,8 @@
 #define SOLVEC_H
 
 // ShapeOp Libraries
-#include "../ShapeOp/libShapeOp/src/Constraint.h"
+#include <Constraint.h>
+#include <Solver.h>
 
 // OpenMesh Libraries
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>

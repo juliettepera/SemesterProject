@@ -131,9 +131,9 @@ int mmPlugin::addQuadrimesh()
     m_vphandles.resize(m_sizeX*m_sizeY);
 
     // add the new vertices
-    for( int i = 0 ; i < m_sizeX ; i++ )
+    for( int j = 0 ; j < m_sizeY ; j++ )
     {
-        for( int j = 0 ; j < m_sizeY ; j++ )
+        for( int i = 0 ; i < m_sizeX ; i++ )
         {
             m_vphandles[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
             k++;
@@ -279,6 +279,7 @@ void mmPlugin::findSelectVertex()
               m_vFixed.push_back(v_it);
               PolyMesh::Point p = m_PickedMesh->point(v_it);
               Vector v(p[0],p[1],p[2]);
+              std::cout << "point: " << v << std::endl;
               int val = RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
             }
             else
@@ -287,7 +288,10 @@ void mmPlugin::findSelectVertex()
             }
           }
      }
+
+     save(m_IdObject,"/Users/Juju/Documents/project/files/OutputSolver.ply");
      emit updatedObject(m_IdObject,UPDATE_ALL);
+     PluginFunctions::viewAll();
 }
 
 //**********************************************************************************************
@@ -394,8 +398,37 @@ void mmPlugin::discretizeLenght()
 //**********************************************************************************************
 int mmPlugin::solveOptimazation()
 {
-    m_mySolver.hello();
-    m_mySolver.getPoints(m_PickedMesh,m_vFixed);
+    ShapeOp::Matrix3X MV = m_mySolver.getPoints(m_PickedMesh,m_vFixed);
+    setNewPositions(MV);
+}
+
+void mmPlugin::setNewPositions(ShapeOp::Matrix3X MV)
+{
+     PolyMesh::VertexIter v_it;
+     PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+     OpenMesh::Vec3d NewPoint;
+     int i = 0;
+     int j = 0;
+
+     for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+     {
+        if( i < m_PickedMesh->n_vertices() )
+        {
+            NewPoint[0] = MV(j,i); i++;
+            NewPoint[1] = MV(j,i); i++;
+            NewPoint[2] = MV(j,i); i++;
+        }
+        else
+        {
+            j++;
+            i=0;
+            NewPoint[0] = MV(j,i); i++;
+            NewPoint[1] = MV(j,i); i++;
+            NewPoint[2] = MV(j,i); i++;
+        }
+            m_PickedMesh->point( *v_it ) = NewPoint;
+     }
+     emit updatedObject(m_IdObject,UPDATE_ALL);
 }
 
 //**********************************************************************************************

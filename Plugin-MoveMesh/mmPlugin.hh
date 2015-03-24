@@ -72,6 +72,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
         void discretizeLenght();
         void changeDiscretizeValue();
         int solveOptimazation();
+        void setNewPositions(ShapeOp::Matrix3X MV);
 
    private slots:   
         // BaseInterface

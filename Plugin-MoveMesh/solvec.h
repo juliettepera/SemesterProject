@@ -4,6 +4,7 @@
 // ShapeOp Libraries
 #include <Constraint.h>
 #include <Solver.h>
+#include <Force.h>
 
 // OpenMesh Libraries
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>
@@ -17,10 +18,12 @@ class solvec
 {
     public:
         solvec();
-        void hello();
-        int getPoints(PolyMesh* mesh, std::vector<PolyMesh::VertexIter> vertexFixed);
+        ShapeOp::Matrix3X getPoints(PolyMesh* mesh, std::vector<PolyMesh::VertexIter> vertexFixed);
+        ShapeOp::Matrix3X solveShape(ShapeOp::Matrix3X MV, ShapeOp::MatrixXX ME, std::vector<int> fix);
 
     private:
+        PolyMesh* m_Mesh;
+
 };
 
 #endif // SOLVEC_H

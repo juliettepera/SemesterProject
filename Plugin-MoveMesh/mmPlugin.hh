@@ -12,7 +12,11 @@
 
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>
 
-#include "solvec.h"
+// ShapeOp Libraries
+#include <Constraint.h>
+#include <Solver.h>
+#include <Force.h>
+
 #include <cmath>
 
 class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
@@ -31,9 +35,15 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
 
        PolyMesh* m_PickedMesh;
 
-       std::vector<PolyMesh::VertexHandle> m_vphandles;
+       std::vector<PolyMesh::VertexHandle> m_vh0;
+       std::vector<PolyMesh::VertexHandle> m_vh1;
+       std::vector<PolyMesh::VertexHandle> m_vh2;
+
        std::vector<PolyMesh::VertexHandle> m_fphandles;
-       std::vector<PolyMesh::VertexIter> m_vFixed;
+
+       std::vector<int> m_idFixed;
+       std::vector<Vector> m_posFixed;
+
 
        OpenMesh::Vec3d m_hitPoint;
 
@@ -43,8 +53,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        int m_discretize;
        int m_sizeX;
        int m_sizeY;
-
-       solvec m_mySolver;
 
        QSpinBox* sizeXSpin;
        QSpinBox* sizeYSpin;
@@ -63,6 +71,11 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        // MoveMesh
        int createNewObject();
        void findSelectVertex();
+
+       //Solve
+       ShapeOp::Matrix3X getPoints();
+       ShapeOp::Matrix3X solveShape(ShapeOp::Matrix3X MV, ShapeOp::MatrixXX ME);
+
 
    public slots:
         int addQuadrimesh();

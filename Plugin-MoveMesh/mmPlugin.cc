@@ -8,7 +8,8 @@ void mmPlugin::initializePlugin()
    m_discretize = 3;
    m_sizeX = 5;
    m_sizeY = 5;
-   m_vFixed.clear();
+   m_idFixed.clear();
+   m_posFixed.clear();
    m_hitPoint = OpenMesh::Vec3d(0,0,0);
 
    //**********************************************************************************************
@@ -126,41 +127,64 @@ int mmPlugin::addQuadrimesh()
 
     m_PickedMesh->clear();
 
-    int k = 0;
-
-    m_vphandles.resize(m_sizeX*m_sizeY);
-
     // add the new vertices
+    int k = 0;
+    m_vh0.resize(m_sizeX*m_sizeY);
     for( int j = 0 ; j < m_sizeY ; j++ )
     {
         for( int i = 0 ; i < m_sizeX ; i++ )
         {
-            m_vphandles[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
+            m_vh0[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
             k++;
         }
     }
 
-    // color the points
-    PolyMesh::VertexIter v_it;
-    PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
-    for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+    k = 0;
+    m_vh1.resize(m_sizeX*m_sizeY);
+    for( int j = 0 ; j < m_sizeY ; j++ )
     {
-        m_PickedMesh->set_color(*v_it, PolyMesh::Color(0,0,0,0) );
+        for( int i = 0 ; i < m_sizeX ; i++ )
+        {
+            m_vh1[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
+            k++;
+        }
+    }
+
+    k = 0;
+    m_vh2.resize(m_sizeX*m_sizeY);
+    for( int j = 0 ; j < m_sizeY ; j++ )
+    {
+        for( int i = 0 ; i < m_sizeX ; i++ )
+        {
+            m_vh2[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
+            k++;
+        }
     }
 
     // Add the faces
-    for( int i = 0 ; i < m_sizeX-1 ; i++ )
+    for( int j = 0 ; j < m_sizeY ; j++ )
     {
-       for( int j = 0 ; j < m_sizeY-1 ; j++ )
-       {
-           m_fphandles.clear();
-           m_fphandles.push_back(m_vphandles[j*m_sizeX+i]);
-           m_fphandles.push_back(m_vphandles[j*m_sizeX+(i+1)]);
-           m_fphandles.push_back(m_vphandles[(j+1)*m_sizeX+(i+1)]);
-           m_fphandles.push_back(m_vphandles[(j+1)*m_sizeX+i]);
-           m_PickedMesh->add_face(m_fphandles);
-       }
-    }
+        for( int i = 0 ; i < m_sizeX-1 ; i++ )
+        {
+            m_fphandles.clear();
+            m_fphandles.push_back(m_vh0[j*m_sizeX+i]);
+            m_fphandles.push_back(m_vh1[j*m_sizeX+i]);
+            m_fphandles.push_back(m_vh0[j*m_sizeX+(i+1)]);
+            m_PickedMesh->add_face(m_fphandles);
+        }
+     }
+
+     for( int i = 0 ; i < m_sizeX ; i++ )
+     {
+        for( int j = 0 ; j < m_sizeY-1 ; j++ )
+        {
+            m_fphandles.clear();
+            m_fphandles.push_back(m_vh0[j*m_sizeX+i]);
+            m_fphandles.push_back(m_vh2[j*m_sizeX+i]);
+            m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+i]);
+            m_PickedMesh->add_face(m_fphandles);
+        }
+     }
 
     m_PickedMesh->update_normals();
 
@@ -196,14 +220,13 @@ void mmPlugin::pickVertex()
 {
      fixPointSpin->setDisabled(true);
 
-     if( m_vFixed.size() < m_FixPoint )
+     if(m_idFixed.size() < m_FixPoint )
      {
         PluginFunctions::actionMode(Viewer::PickingMode);
         PluginFunctions::pickMode("MyPickMode");
      }
      else
      {
-        std::cout << "no more fix points possible" << std::endl;
         pickButton->setDisabled(true);
         discretButton->setEnabled(true);
         solveButton->setEnabled(true);
@@ -227,12 +250,12 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             }
             else
             {
-               std::cout << "not an object " << std::endl;
+               std::cout << "not on the mesh " << std::endl;
             }
        }
      }
 
-     if( m_vFixed.size() < m_FixPoint )
+     if( m_idFixed.size() < m_FixPoint )
      {
         PluginFunctions::actionMode(Viewer::PickingMode);
         PluginFunctions::pickMode("MyPickMode");
@@ -257,8 +280,8 @@ void mmPlugin::findSelectVertex()
 
      for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
      {
-
           ActualPoint = m_PickedMesh->point( *v_it );
+
           double X = fabs(double(ActualPoint[0])-double(m_hitPoint[0]));
           double Y = fabs(double(ActualPoint[1])-double(m_hitPoint[1]));
           double Z = fabs(double(ActualPoint[2])-double(m_hitPoint[2]));
@@ -266,9 +289,10 @@ void mmPlugin::findSelectVertex()
           if( (X<=0.25) && (Y<=0.25) && (Z<=0.25) )
           {
             int check = 0;
-            for( int i = 0 ; i < m_vFixed.size() ; i++ )
+
+            for( int i = 0 ; i < m_idFixed.size() ; i++ )
             {
-                if( v_it == m_vFixed[i] )
+                if( (*v_it).idx() == m_idFixed[i] )
                 {
                     check = -1;
                 }
@@ -276,15 +300,24 @@ void mmPlugin::findSelectVertex()
 
             if( check == 0 )
             {
-              m_vFixed.push_back(v_it);
-              PolyMesh::Point p = m_PickedMesh->point(v_it);
-              Vector v(p[0],p[1],p[2]);
-              std::cout << "point: " << v << std::endl;
-              int val = RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
-            }
-            else
-            {
-                std::cout << "Allready fixed" << std::endl;
+                PolyMesh::Point p = m_PickedMesh->point(*v_it);
+
+                for( int i = 0 ; i < m_posFixed.size() ; i++ )
+                {
+                    if( p == m_posFixed[i] )
+                    {
+                        check = -1;
+                    }
+                }
+
+                if( check == 0 )
+                {
+                   m_idFixed.push_back((*v_it).idx());
+                   Vector v(p[0],p[1],p[2]);
+                   m_posFixed.push_back(v);
+                   std::cout << "fix point# " << m_idFixed.size() << " : " << v << std::endl;
+                   RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
+                }
             }
           }
      }
@@ -398,8 +431,115 @@ void mmPlugin::discretizeLenght()
 //**********************************************************************************************
 int mmPlugin::solveOptimazation()
 {
-    ShapeOp::Matrix3X MV = m_mySolver.getPoints(m_PickedMesh,m_vFixed);
+    ShapeOp::Matrix3X MV = getPoints();
     setNewPositions(MV);
+    return 0;
+}
+
+ShapeOp::Matrix3X mmPlugin::getPoints()
+{
+    int vertices = (m_PickedMesh->n_vertices())/2;
+    int edges = m_PickedMesh->n_edges();
+
+    ShapeOp::Matrix3X MV(3,vertices);
+    ShapeOp::MatrixXX ME(edges,2);
+
+
+    // GET ALL THE VERTICES
+    PolyMesh::VertexIter v_it;
+    //PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+
+    OpenMesh::Vec3d p;
+
+    int i = 0;
+
+    for (v_it = m_PickedMesh->vertices_begin(); (*v_it).idx() != (m_sizeX*m_sizeY-1); v_it++)
+    {
+            p = m_PickedMesh->point(*v_it);
+
+            MV(0,i) = p[0];
+            MV(1,i) = p[1];
+            MV(2,i) = p[2];
+
+            i++;
+            v_it++;
+    }
+
+    // GET ALL THE EDGES
+    int nbedges = 0;
+
+    for( int j = 0 ; j < m_sizeY-2 ; j++ )
+    {
+        for( int i = 0 ; i < m_sizeX-2 ; i++)
+        {
+            ME(nbedges,0) = i;
+            ME(nbedges,1) = i+1;
+            nbedges++;
+
+            ME(nbedges,0) = i;
+            ME(nbedges,1) = (j+1)*m_sizeX+i;
+            nbedges++;
+        }
+    }
+
+    // add constraints and solve
+    MV = solveShape(MV,ME);
+
+    return MV;
+}
+
+ShapeOp::Matrix3X mmPlugin::solveShape(ShapeOp::Matrix3X MV, ShapeOp::MatrixXX ME)
+{
+      ShapeOp::Solver s;
+      s.setPoints(MV);
+      ShapeOp::Scalar edgelength_weight = 1.0;
+      ShapeOp::Scalar closeness_weight = 10;
+
+      //add a closeness constraint to the fixed vertex.
+      for(int i = 0 ; i < m_idFixed.size()  ; i++)
+      {
+        std::vector<int> id_vector;
+        id_vector.push_back(m_idFixed[i]);
+        auto closs_contraint = std::make_shared<ShapeOp::ClosenessConstraint>(id_vector, closeness_weight, s.getPoints());
+
+        //PolyMesh::VertexHandle v = m_PickedMesh->vertex_handle(m_idFixed[i]);
+        //PolyMesh::Point pos1 = m_PickedMesh->point(v);
+        Vector pos1 = m_posFixed[i];
+        ShapeOp::Vector3 pos2;
+        pos2(0) = pos1[0];
+        pos2(1) = pos1[1];
+        pos2(2) = pos1[2];
+
+        std::cout << "position of #" << m_idFixed[i] << " : " << pos2 << std::endl;
+
+        closs_contraint->setPosition(pos2);
+
+        s.addConstraint(closs_contraint);
+      }
+
+      //add edge contraint for all edges
+      for( int i = 0 ; i < ME.rows() ; i++)
+      {
+        std::vector<int> id_vector;
+        id_vector.push_back(ME(i,0));
+        id_vector.push_back(ME(i,1));
+        auto edge_constraint = std::make_shared<ShapeOp::EdgeStrainConstraint>(id_vector,edgelength_weight,s.getPoints());
+        edge_constraint->setEdgeLength(1.5);
+        s.addConstraint(edge_constraint);
+      }
+
+      //add gravity constraint
+      {
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-2));
+        s.addForces(gravity_force);
+      }
+
+      s.initialize(true);
+      s.solve(500);
+      MV = s.getPoints();
+
+      return MV;
+
 }
 
 void mmPlugin::setNewPositions(ShapeOp::Matrix3X MV)
@@ -408,26 +548,34 @@ void mmPlugin::setNewPositions(ShapeOp::Matrix3X MV)
      PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
      OpenMesh::Vec3d NewPoint;
      int i = 0;
-     int j = 0;
 
-     for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+     for( v_it = m_PickedMesh->vertices_begin(); (*v_it).idx() != (m_sizeX*m_sizeY-1); ++v_it)
      {
-        if( i < m_PickedMesh->n_vertices() )
-        {
-            NewPoint[0] = MV(j,i); i++;
-            NewPoint[1] = MV(j,i); i++;
-            NewPoint[2] = MV(j,i); i++;
-        }
-        else
-        {
-            j++;
-            i=0;
-            NewPoint[0] = MV(j,i); i++;
-            NewPoint[1] = MV(j,i); i++;
-            NewPoint[2] = MV(j,i); i++;
-        }
-            m_PickedMesh->point( *v_it ) = NewPoint;
+        NewPoint[0] = MV(0,i);
+        NewPoint[1] = MV(1,i);
+        NewPoint[2] = MV(2,i);
+        i++;
+        m_PickedMesh->set_point(*v_it,NewPoint);
      }
+
+     /*for(  ; (*v_it).idx() != 2*(m_sizeX*m_sizeY)-1; ++v_it)
+     {
+        NewPoint[0] = MV(0,i);
+        NewPoint[1] = MV(1,i);
+        NewPoint[2] = MV(2,i);
+        i++;
+        m_PickedMesh->set_point(*v_it,NewPoint);
+     }
+
+     for( ; v_it !=v_end; ++v_it)
+     {
+        NewPoint[0] = MV(0,i);
+        NewPoint[1] = MV(1,i);
+        NewPoint[2] = MV(2,i);
+        i++;
+        m_PickedMesh->set_point(*v_it,NewPoint);
+     }*/
+
      emit updatedObject(m_IdObject,UPDATE_ALL);
 }
 

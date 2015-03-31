@@ -10,6 +10,9 @@
 #include <OpenFlipper/BasePlugin/PluginFunctions.hh>
 #include <OpenFlipper/BasePlugin/RPCInterface.hh>
 
+//#include <OpenFlipper/Core/Core.hh>
+//#include <OpenFlipper/widgets/aboutWidget/aboutWidget.hh>
+
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>
 
 // ShapeOp Libraries
@@ -38,14 +41,18 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        std::vector<PolyMesh::VertexHandle> m_vh0;
        std::vector<PolyMesh::VertexHandle> m_vh1;
        std::vector<PolyMesh::VertexHandle> m_vh2;
+       std::vector<PolyMesh::VertexHandle> m_vh3;
+       std::vector<PolyMesh::VertexHandle> m_vh4;
 
        std::vector<PolyMesh::VertexHandle> m_fphandles;
 
        std::vector<int> m_idFixed;
        std::vector<Vector> m_posFixed;
 
-
        OpenMesh::Vec3d m_hitPoint;
+
+       ShapeOp::MatrixXX m_ME;
+       ShapeOp::Matrix3X m_MV;
 
        int m_IdObject;
 
@@ -53,6 +60,8 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        int m_discretize;
        int m_sizeX;
        int m_sizeY;
+       int m_vertices;
+       int m_edges;
 
        QSpinBox* sizeXSpin;
        QSpinBox* sizeYSpin;
@@ -73,8 +82,9 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        void findSelectVertex();
 
        //Solve
-       ShapeOp::Matrix3X getPoints();
-       ShapeOp::Matrix3X solveShape(ShapeOp::Matrix3X MV, ShapeOp::MatrixXX ME);
+       void getPoints();
+       void solveShape();
+       void setNewPositions();
 
 
    public slots:
@@ -84,8 +94,9 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
         void changeFixPointValue();
         void discretizeLenght();
         void changeDiscretizeValue();
-        int solveOptimazation();
-        void setNewPositions(ShapeOp::Matrix3X MV);
+        void solveOptimazation();
+
+                void allCleared();
 
    private slots:   
         // BaseInterface
@@ -113,7 +124,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
         // LoadSaveInterface
         void addEmptyObject( DataType _type, int& _id);
         void save(int _id, QString _filename);
-
 };
 
 #endif //mmPlugin

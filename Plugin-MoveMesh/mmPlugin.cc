@@ -147,6 +147,7 @@ int mmPlugin::addQuadrimesh()
     // add the new vertices
     int k = 0;
     m_vh0.resize(m_sizeX*m_sizeY);
+
     for( int j = 0 ; j < m_sizeY ; j++ )
     {
         for( int i = 0 ; i < m_sizeX ; i++ )
@@ -156,48 +157,15 @@ int mmPlugin::addQuadrimesh()
         }
     }
 
-    k = 0;
-    m_vh1.resize(m_sizeX*m_sizeY);
-    for( int j = 0 ; j < m_sizeY ; j++ )
-    {
-        for( int i = 0 ; i < m_sizeX ; i++ )
-        {
-            m_vh1[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
-            k++;
-        }
-    }
-
-    k = 0;
-    m_vh2.resize(m_sizeX*m_sizeY);
-    for( int j = 0 ; j < m_sizeY ; j++ )
-    {
-        for( int i = 0 ; i < m_sizeX ; i++ )
-        {
-            m_vh2[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
-            k++;
-        }
-    }
-
     // Add the faces
-    for( int j = 0 ; j < m_sizeY ; j++ )
+    for( int j = 0 ; j < m_sizeY-1 ; j++ )
     {
         for( int i = 0 ; i < m_sizeX-1 ; i++ )
         {
             m_fphandles.clear();
             m_fphandles.push_back(m_vh0[j*m_sizeX+i]);
-            m_fphandles.push_back(m_vh1[j*m_sizeX+i]);
             m_fphandles.push_back(m_vh0[j*m_sizeX+(i+1)]);
-            m_PickedMesh->add_face(m_fphandles);
-        }
-     }
-
-     for( int i = 0 ; i < m_sizeX ; i++ )
-     {
-        for( int j = 0 ; j < m_sizeY-1 ; j++ )
-        {
-            m_fphandles.clear();
-            m_fphandles.push_back(m_vh0[j*m_sizeX+i]);
-            m_fphandles.push_back(m_vh2[j*m_sizeX+i]);
+            m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+(i+1)]);
             m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+i]);
             m_PickedMesh->add_face(m_fphandles);
         }
@@ -283,6 +251,7 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
         std::cout << "no more fix points possible" << std::endl;
         pickButton->setDisabled(true);
         discretButton->setEnabled(true);
+        discretizeSpin->setEnabled(true);
         solveButton->setEnabled(true);
         PluginFunctions::actionMode(Viewer::ExamineMode);
      }
@@ -306,37 +275,25 @@ void mmPlugin::findSelectVertex()
 
           if( (X<=0.25) && (Y<=0.25) && (Z<=0.25) )
           {
-            int check = 0;
+              int check = 0;
 
-            for( int i = 0 ; i < m_idFixed.size() ; i++ )
-            {
-                if( (*v_it).idx() == m_idFixed[i] )
-                {
-                    check = -1;
-                }
-            }
+              for( int i = 0 ; i < m_idFixed.size() ; i++ )
+              {
+                  if( (*v_it).idx() == m_idFixed[i] )
+                  {
+                      check = -1;
+                  }
+              }
 
-            if( check == 0 )
-            {
-                PolyMesh::Point p = m_PickedMesh->point(*v_it);
-
-                for( int i = 0 ; i < m_posFixed.size() ; i++ )
-                {
-                    if( p == m_posFixed[i] )
-                    {
-                        check = -1;
-                    }
-                }
-
-                if( check == 0 )
-                {
-                   m_idFixed.push_back((*v_it).idx());
-                   Vector v(p[0],p[1],p[2]);
-                   m_posFixed.push_back(v);
-                   std::cout << "fix point# " << m_idFixed.size() << " : " << v << std::endl;
-                   RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
-                }
-            }
+              if( check == 0 )
+              {
+                  PolyMesh::Point p = m_PickedMesh->point(*v_it);
+                  m_idFixed.push_back((*v_it).idx());
+                  Vector v(p[0],p[1],p[2]);
+                  m_posFixed.push_back(v);
+                  std::cout << "fix point# " << m_idFixed.size() << " : " << v << std::endl;
+                  RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
+              }
           }
      }
 
@@ -457,16 +414,13 @@ void mmPlugin::getPoints()
     int nbV = 0;
     for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
     {
-         if( nbV < m_sizeX*m_sizeY )
-         {
-            p = m_PickedMesh->point(*v_it);
+        p = m_PickedMesh->point(*v_it);
 
-            m_MV(0,nbV) = p[0];
-            m_MV(1,nbV) = p[1];
-            m_MV(2,nbV) = p[2];
+        m_MV(0,nbV) = p[0];
+        m_MV(1,nbV) = p[1];
+        m_MV(2,nbV) = p[2];
 
-            nbV++;
-        }
+        nbV++;
     }
 
     // GET ALL THE EDGES
@@ -494,14 +448,14 @@ void mmPlugin::getPoints()
 
 void mmPlugin::solveShape()
 {
-      ShapeOp::Solver s;
-      s.setPoints(m_MV);
-      ShapeOp::Scalar edgelength_weight = 1.0;
-      ShapeOp::Scalar closeness_weight = 10;
+    ShapeOp::Solver s;
+    s.setPoints(m_MV);
+    ShapeOp::Scalar edgelength_weight = 7.0;
+    ShapeOp::Scalar closeness_weight = 10;
 
-      //add a closeness constraint to the fixed vertex.
-      for(int i = 0 ; i < m_idFixed.size()  ; i++)
-      {
+    //add a closeness constraint to the fixed vertex.
+    for(int i = 0 ; i < m_idFixed.size()  ; i++)
+    {
         std::vector<int> id_vector;
         id_vector.push_back(m_idFixed[i]);
         auto closs_contraint = std::make_shared<ShapeOp::ClosenessConstraint>(id_vector, closeness_weight, s.getPoints());
@@ -515,28 +469,28 @@ void mmPlugin::solveShape()
         closs_contraint->setPosition(pos2);
 
         s.addConstraint(closs_contraint);
-      }
+    }
 
-      //add edge contraint for all edges
-      for( int i = 0 ; i < m_ME.rows() ; i++)
-      {
+    //add edge contraint for all edges
+    for( int i = 0 ; i < m_ME.rows() ; i++)
+    {
         std::vector<int> id_vector;
         id_vector.push_back(m_ME(i,0));
         id_vector.push_back(m_ME(i,1));
         auto edge_constraint = std::make_shared<ShapeOp::EdgeStrainConstraint>(id_vector,edgelength_weight,s.getPoints());
-        edge_constraint->setEdgeLength(1.5);
+        edge_constraint->setEdgeLength(1);
         s.addConstraint(edge_constraint);
-      }
+    }
 
-      //add gravity constraint
-      {
-        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-2));
+    //add gravity constraint
+    {
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-1));
         s.addForces(gravity_force);
-      }
+    }
 
-      s.initialize(false);
-      s.solve(500);
-      m_MV = s.getPoints();
+    s.initialize(false);
+    s.solve(500);
+    m_MV = s.getPoints();
 }
 
 void mmPlugin::setNewPositions()
@@ -548,43 +502,14 @@ void mmPlugin::setNewPositions()
     int nbV = 0;
     for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
     {
-        if( nbV < m_sizeX*m_sizeY )
-        {
-            NewPoint[0] = m_MV(0,nbV);
-            NewPoint[1] = m_MV(1,nbV);
-            NewPoint[2] = m_MV(2,nbV);
-            m_PickedMesh->set_point(*v_it,NewPoint);
-        }
+        NewPoint[0] = m_MV(0,nbV);
+        NewPoint[1] = m_MV(1,nbV);
+        NewPoint[2] = m_MV(2,nbV);
+        m_PickedMesh->set_point(*v_it,NewPoint);
         nbV++;
     }
 
-    nbV = 0;
-    for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
-    {
-        if( nbV >= m_sizeX*m_sizeY && nbV < 2*(m_sizeX*m_sizeY) )
-        {
-            NewPoint[0] = m_MV(0,nbV-m_sizeX*m_sizeY);
-            NewPoint[1] = m_MV(1,nbV-m_sizeX*m_sizeY);
-            NewPoint[2] = m_MV(2,nbV-m_sizeX*m_sizeY);
-            m_PickedMesh->set_point(*v_it,NewPoint);
-        }
-        nbV++;
-    }
-
-    nbV = 0;
-    for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
-    {
-        if( nbV >= 2*(m_sizeX*m_sizeY) )
-        {
-            NewPoint[0] = m_MV(0,nbV-2*m_sizeX*m_sizeY);
-            NewPoint[1] = m_MV(1,nbV-2*m_sizeX*m_sizeY);
-            NewPoint[2] = m_MV(2,nbV-2*m_sizeX*m_sizeY);
-            m_PickedMesh->set_point(*v_it,NewPoint);
-        }
-        nbV++;
-    }
-
-     emit updatedObject(m_IdObject,UPDATE_ALL);
+    emit updatedObject(m_IdObject,UPDATE_ALL);
 }
 
 //**********************************************************************************************

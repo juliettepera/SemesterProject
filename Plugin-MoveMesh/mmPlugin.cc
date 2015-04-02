@@ -2,81 +2,81 @@
 
 void mmPlugin::initializePlugin()
 {
-   //**********************************************************************************************
-   m_IdObject = -1;
-   m_FixPoint = 4;
-   m_discretize = 1;
-   m_sizeX = 5;
-   m_sizeY = 5;
-   m_vertices = m_sizeX*m_sizeY;
-   m_edges = 2*(m_sizeX-1)*(m_sizeY-1) + m_sizeX + m_sizeY - 2;
-   m_faces = (m_sizeX - 1)*(m_sizeY - 1);
-   m_idFixed.clear();
-   m_posFixed.clear();
-   m_hitPoint = OpenMesh::Vec3d(0,0,0); 
+    //**********************************************************************************************
+    m_IdObject = -1;
+    m_FixPoint = 4;
+    m_discretize = 1;
+    m_sizeX = 5;
+    m_sizeY = 5;
+    m_vertices = m_sizeX*m_sizeY;
+    m_edges = 2*(m_sizeX-1)*(m_sizeY-1) + m_sizeX + m_sizeY - 2;
+    m_faces = (m_sizeX - 1)*(m_sizeY - 1);
+    m_idFixed.clear();
+    m_posFixed.clear();
+    m_hitPoint = OpenMesh::Vec3d(0,0,0);
 
-   //**********************************************************************************************
-   QWidget* toolBox = new QWidget();
+    //**********************************************************************************************
+    QWidget* toolBox = new QWidget();
 
-   sizeXSpin = new QSpinBox(toolBox);
-   sizeXSpin->setMinimum(5);
-   sizeXSpin->setMaximum(100);
-   sizeXSpin->setValue(5);
+    sizeXSpin = new QSpinBox(toolBox);
+    sizeXSpin->setMinimum(5);
+    sizeXSpin->setMaximum(100);
+    sizeXSpin->setValue(5);
 
-   sizeYSpin = new QSpinBox(toolBox);
-   sizeYSpin->setMinimum(5);
-   sizeYSpin->setMaximum(100);
-   sizeYSpin->setValue(5);
+    sizeYSpin = new QSpinBox(toolBox);
+    sizeYSpin->setMinimum(5);
+    sizeYSpin->setMaximum(100);
+    sizeYSpin->setValue(5);
 
-   loadButton = new QPushButton("&Load",toolBox);
-   loadButton->setDisabled(true);
+    loadButton = new QPushButton("&Load",toolBox);
+    loadButton->setDisabled(true);
 
-   pickButton = new QPushButton("&Pick",toolBox);
-   pickButton->setDisabled(true);
+    pickButton = new QPushButton("&Pick",toolBox);
+    pickButton->setDisabled(true);
 
-   discretButton = new QPushButton("&Discretize",toolBox);
-   discretButton->setDisabled(true);
+    discretButton = new QPushButton("&Discretize",toolBox);
+    discretButton->setDisabled(true);
 
-   solveButton = new QPushButton("&Solve",toolBox);
-   solveButton->setDisabled(true);
+    solveButton = new QPushButton("&Solve",toolBox);
+    solveButton->setDisabled(true);
 
-   fixPointSpin = new QSpinBox(toolBox);
-   fixPointSpin->setMinimum(1);
-   fixPointSpin->setMaximum(10);
-   fixPointSpin->setValue(4);
-   fixPointSpin->setDisabled(true);
+    fixPointSpin = new QSpinBox(toolBox);
+    fixPointSpin->setMinimum(1);
+    fixPointSpin->setMaximum(10);
+    fixPointSpin->setValue(4);
+    fixPointSpin->setDisabled(true);
 
-   discretizeSpin = new QSpinBox(toolBox);
-   discretizeSpin->setMinimum(1);
-   discretizeSpin->setMaximum(5);
-   discretizeSpin->setValue(1);
-   discretizeSpin->setDisabled(true);
+    discretizeSpin = new QSpinBox(toolBox);
+    discretizeSpin->setMinimum(1);
+    discretizeSpin->setMaximum(5);
+    discretizeSpin->setValue(1);
+    discretizeSpin->setDisabled(true);
     
-   QGridLayout* layout = new QGridLayout(toolBox);
+    QGridLayout* layout = new QGridLayout(toolBox);
 
-   layout->addWidget( sizeXSpin, 1, 1);
-   layout->addWidget( sizeYSpin, 1, 2);
-   layout->addWidget( loadButton, 1, 3);
-   layout->addWidget( fixPointSpin, 2, 1);
-   layout->addWidget( pickButton, 2, 2);
-   layout->addWidget( discretizeSpin, 3, 1);
-   layout->addWidget( discretButton , 3, 2);
-   layout->addWidget( solveButton , 4, 1);
+    layout->addWidget( sizeXSpin, 1, 1);
+    layout->addWidget( sizeYSpin, 1, 2);
+    layout->addWidget( loadButton, 1, 3);
+    layout->addWidget( fixPointSpin, 2, 1);
+    layout->addWidget( pickButton, 2, 2);
+    layout->addWidget( discretizeSpin, 3, 1);
+    layout->addWidget( discretButton , 3, 2);
+    layout->addWidget( solveButton , 4, 1);
 
-   layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
+    layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
 
-   //**********************************************************************************************
-   connect( sizeXSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeXYValue()));
-   connect( sizeYSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeXYValue()));
-   connect( loadButton, SIGNAL(clicked()), this, SLOT(addQuadrimesh()));
-   connect( pickButton, SIGNAL(clicked()), this, SLOT(pickVertex()));
-   connect( fixPointSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeFixPointValue()));
-   connect( discretButton, SIGNAL(clicked()), this, SLOT(discretizeLenght()));
-   connect( discretizeSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeDiscretizeValue()));
-   connect( solveButton, SIGNAL(clicked()), this, SLOT(solveOptimazation()));
-   //connect( , SIGNAL(clicked()), this, SLOT(allCleared()));
+    //**********************************************************************************************
+    connect( sizeXSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeXYValue()));
+    connect( sizeYSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeXYValue()));
+    connect( loadButton, SIGNAL(clicked()), this, SLOT(addQuadrimesh()));
+    connect( pickButton, SIGNAL(clicked()), this, SLOT(pickVertex()));
+    connect( fixPointSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeFixPointValue()));
+    connect( discretButton, SIGNAL(clicked()), this, SLOT(discretizeLenght()));
+    connect( discretizeSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeDiscretizeValue()));
+    connect( solveButton, SIGNAL(clicked()), this, SLOT(solveOptimazation()));
+    //connect( , SIGNAL(clicked()), this, SLOT(allCleared()));
 
-   emit addToolbox( tr("MoveMesh") , toolBox );
+    emit addToolbox( tr("MoveMesh") , toolBox );
 }
 
 //**********************************************************************************************
@@ -114,85 +114,85 @@ void mmPlugin::changeXYValue()
 
 int mmPlugin::createNewObject()
 {
-  int objectId = -1;
+    int objectId = -1;
 
-  emit addEmptyObject( DATA_POLY_MESH, objectId );
+    emit addEmptyObject( DATA_POLY_MESH, objectId );
 
-  PolyMeshObject* object;
-  if ( !PluginFunctions::getObject(objectId,object) )
-  {
-    emit log(LOGERR,"Unable to create new Object1");
-    return -1;
-  }
+    PolyMeshObject* object;
+    if ( !PluginFunctions::getObject(objectId,object) )
+    {
+        emit log(LOGERR,"Unable to create new Object1");
+        return -1;
+    }
 
-  return objectId;
+    return objectId;
 }
 
 int mmPlugin::addQuadrimesh()
 {
-  int newObject = createNewObject();
+    int newObject = createNewObject();
 
-  PolyMeshObject* object;
-  if ( !PluginFunctions::getObject(newObject,object) )
-  {
-    emit log(LOGERR,"Unable to create new Object");
-    return -1;
-  }
-  else
-  {
-    object->setName( "Quadrimesh " + QString::number(newObject) );
-
-    m_PickedMesh =  object->mesh();
-
-    m_PickedMesh->clear();
-
-    // add the new vertices
-    int k = 0;
-    m_vh0.resize(m_sizeX*m_sizeY);
-
-    for( int j = 0 ; j < m_sizeY ; j++ )
+    PolyMeshObject* object;
+    if ( !PluginFunctions::getObject(newObject,object) )
     {
-        for( int i = 0 ; i < m_sizeX ; i++ )
+        emit log(LOGERR,"Unable to create new Object");
+        return -1;
+    }
+    else
+    {
+        object->setName( "Quadrimesh " + QString::number(newObject) );
+
+        m_PickedMesh =  object->mesh();
+
+        m_PickedMesh->clear();
+
+        // add the new vertices
+        int k = 0;
+        m_vh0.resize(m_sizeX*m_sizeY);
+
+        for( int j = 0 ; j < m_sizeY ; j++ )
         {
-            m_vh0[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
-            k++;
+            for( int i = 0 ; i < m_sizeX ; i++ )
+            {
+                m_vh0[k] = m_PickedMesh->add_vertex(PolyMesh::Point(i,j, 0));
+                k++;
+            }
         }
+
+        // Add the faces
+        for( int j = 0 ; j < m_sizeY-1 ; j++ )
+        {
+            for( int i = 0 ; i < m_sizeX-1 ; i++ )
+            {
+                m_fphandles.clear();
+                m_fphandles.push_back(m_vh0[j*m_sizeX+i]);
+                m_fphandles.push_back(m_vh0[j*m_sizeX+(i+1)]);
+                m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+(i+1)]);
+                m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+i]);
+                m_PickedMesh->add_face(m_fphandles);
+            }
+        }
+
+        m_PickedMesh->update_normals();
+
+        m_IdObject = newObject;
+        save(m_IdObject,"/Users/Juju/Documents/project/files/Quadmesh.ply");
+
+        PluginFunctions::setDrawMode(ACG::SceneGraph::DrawModes::WIREFRAME);
+        emit updatedObject(m_IdObject,UPDATE_ALL);
+
+        PluginFunctions::viewAll();
+
+        fixPointSpin->setEnabled(true);
+        pickButton->setEnabled(true);
+        loadButton->setDisabled(true);
+        sizeXSpin->setDisabled(true);
+        sizeYSpin->setDisabled(true);
+
+        return newObject;
     }
 
-    // Add the faces
-    for( int j = 0 ; j < m_sizeY-1 ; j++ )
-    {
-        for( int i = 0 ; i < m_sizeX-1 ; i++ )
-        {
-            m_fphandles.clear();
-            m_fphandles.push_back(m_vh0[j*m_sizeX+i]);
-            m_fphandles.push_back(m_vh0[j*m_sizeX+(i+1)]);
-            m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+(i+1)]);
-            m_fphandles.push_back(m_vh0[(j+1)*m_sizeX+i]);
-            m_PickedMesh->add_face(m_fphandles);
-        }
-     }
-
-    m_PickedMesh->update_normals();
-
-    m_IdObject = newObject;
-    save(m_IdObject,"/Users/Juju/Documents/project/files/Quadmesh.ply");
-
-    PluginFunctions::setDrawMode(ACG::SceneGraph::DrawModes::WIREFRAME);
-    emit updatedObject(newObject,UPDATE_ALL);
-
-    PluginFunctions::viewAll();
-
-    fixPointSpin->setEnabled(true);
-    pickButton->setEnabled(true);
-    loadButton->setDisabled(true);
-    sizeXSpin->setDisabled(true);
-    sizeYSpin->setDisabled(true);
-
-    return newObject;
-  }
-
-  return -1;
+    return -1;
 }
 
 //**********************************************************************************************
@@ -206,19 +206,19 @@ void mmPlugin::changeFixPointValue()
 
 void mmPlugin::pickVertex()
 {
-     fixPointSpin->setDisabled(true);
+    fixPointSpin->setDisabled(true);
 
-     if(m_idFixed.size() < m_FixPoint )
-     {
+    if(m_idFixed.size() < m_FixPoint )
+    {
         PluginFunctions::actionMode(Viewer::PickingMode);
         PluginFunctions::pickMode("MyPickMode");
-     }
-     else
-     {
+    }
+    else
+    {
         pickButton->setDisabled(true);
         discretButton->setEnabled(true);
         solveButton->setEnabled(true);
-     }
+    }
 }
 
 void mmPlugin::slotMouseEvent(QMouseEvent* _event)
@@ -233,75 +233,75 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             // Get picked object's identifier
             if ( PluginFunctions::scenegraphPick(ACG::SceneGraph::PICK_ANYTHING,_event->pos(), node_idx, target_idx, &hitPoint) )
             {
-               m_hitPoint = hitPoint;
-               findSelectVertex();
+                m_hitPoint = hitPoint;
+                findSelectVertex();
             }
             else
             {
-               std::cout << "not on the mesh " << std::endl;
+                std::cout << "not on the mesh " << std::endl;
             }
-       }
-     }
+        }
+    }
 
-     if( m_idFixed.size() < m_FixPoint )
-     {
+    if( m_idFixed.size() < m_FixPoint )
+    {
         PluginFunctions::actionMode(Viewer::PickingMode);
         PluginFunctions::pickMode("MyPickMode");
-     }
-     else
-     {
+    }
+    else
+    {
         std::cout << "no more fix points possible" << std::endl;
         pickButton->setDisabled(true);
         discretButton->setEnabled(true);
         discretizeSpin->setEnabled(true);
         solveButton->setEnabled(true);
         PluginFunctions::actionMode(Viewer::ExamineMode);
-     }
+    }
 
 }
 
 void mmPlugin::findSelectVertex()
 {
-     PolyMesh::VertexIter v_it;
-     PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+    PolyMesh::VertexIter v_it;
+    PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
 
-     OpenMesh::Vec3d ActualPoint;
+    OpenMesh::Vec3d ActualPoint;
 
-     for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
-     {
-          ActualPoint = m_PickedMesh->point( *v_it );
+    for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+    {
+        ActualPoint = m_PickedMesh->point( *v_it );
 
-          double X = fabs(double(ActualPoint[0])-double(m_hitPoint[0]));
-          double Y = fabs(double(ActualPoint[1])-double(m_hitPoint[1]));
-          double Z = fabs(double(ActualPoint[2])-double(m_hitPoint[2]));
+        double X = fabs(double(ActualPoint[0])-double(m_hitPoint[0]));
+        double Y = fabs(double(ActualPoint[1])-double(m_hitPoint[1]));
+        double Z = fabs(double(ActualPoint[2])-double(m_hitPoint[2]));
 
-          if( (X<=0.25) && (Y<=0.25) && (Z<=0.25) )
-          {
-              int check = 0;
+        if( (X<=0.25) && (Y<=0.25) && (Z<=0.25) )
+        {
+            int check = 0;
 
-              for( int i = 0 ; i < m_idFixed.size() ; i++ )
-              {
-                  if( (*v_it).idx() == m_idFixed[i] )
-                  {
-                      check = -1;
-                  }
-              }
+            for( int i = 0 ; i < m_idFixed.size() ; i++ )
+            {
+                if( (*v_it).idx() == m_idFixed[i] )
+                {
+                    check = -1;
+                }
+            }
 
-              if( check == 0 )
-              {
-                  PolyMesh::Point p = m_PickedMesh->point(*v_it);
-                  m_idFixed.push_back((*v_it).idx());
-                  Vector v(p[0],p[1],p[2]);
-                  m_posFixed.push_back(v);
-                  std::cout << "fix point# " << m_idFixed.size() << " : " << v << std::endl;
-                  RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
-              }
-          }
-     }
+            if( check == 0 )
+            {
+                PolyMesh::Point p = m_PickedMesh->point(*v_it);
+                m_idFixed.push_back((*v_it).idx());
+                Vector v(p[0],p[1],p[2]);
+                m_posFixed.push_back(v);
+                std::cout << "fix point# " << m_idFixed.size() << " : " << v << std::endl;
+                RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
+            }
+        }
+    }
 
-     save(m_IdObject,"/Users/Juju/Documents/project/files/OutputSolver.ply");
-     emit updatedObject(m_IdObject,UPDATE_ALL);
-     PluginFunctions::viewAll();
+    save(m_IdObject,"/Users/Juju/Documents/project/files/OutputSolver.ply");
+    emit updatedObject(m_IdObject,UPDATE_ALL);
+    PluginFunctions::viewAll();
 }
 
 //**********************************************************************************************
@@ -316,118 +316,129 @@ void mmPlugin::changeDiscretizeValue()
 void mmPlugin::discretizeLenght()
 {
     discretizeSpin->setDisabled(true);
+
+    PolyMesh* newMesh;
+
     m_PickedMesh->add_property(m_list_vertex);
 
-    PolyMesh::EdgeIter e_it;
-    PolyMesh::EdgeIter e_end = m_PickedMesh->edges_end();
+    int newObject = createNewObject();
 
-    PolyMesh::EdgeHandle he;
-    PolyMesh::HalfedgeHandle he_01, he_10;
-
-    PolyMesh::VertexHandle vh0, vh1, vhi;
-    PolyMesh::Point p0, p1, pi;
-
-    for( e_it = m_PickedMesh->edges_begin() ; e_it != e_end ; e_it++ )
+    PolyMeshObject* object;
+    if ( !PluginFunctions::getObject(newObject,object) )
     {
-        he = *e_it;
-        he_01 = m_PickedMesh->halfedge_handle(he,0);
-        he_10 = m_PickedMesh->halfedge_handle(he,1);
-
-        vh0 = m_PickedMesh->from_vertex_handle(he_01);
-        m_PickedMesh->property(m_list_vertex,he_01).push_back(vh0.idx());
-
-        vh1 = m_PickedMesh->to_vertex_handle(he_01);
-
-        p0 = m_PickedMesh->point(vh0);
-        p1 = m_PickedMesh->point(vh1);
-
-        for( int i = 0 ; i < m_discretize ; i++ )
-        {
-            if( p0[0] == p1[0] )
-            {
-                pi[1] = std::min(p0[1],p1[1]) + double(i+1)*fabs(p0[1]-p1[1])/double(m_discretize+1);
-                pi[0] = p0[0];
-                pi[2] = p0[2];
-            }
-            else if( p0[1] == p1[1] )
-            {
-                pi[0] = std::min(p0[0],p1[0]) + double(i+1)*fabs(p0[0]-p1[0])/double(m_discretize+1);
-                pi[1] = p0[1];
-                pi[2] = p0[2];
-            }
-
-            vhi = m_PickedMesh->add_vertex(pi);
-            m_PickedMesh->property(m_list_vertex,he_01).push_back(vhi.idx());
-        }
-        m_PickedMesh->property(m_list_vertex,he_01).push_back(vh1.idx());
-
-        for( int i = m_PickedMesh->property(m_list_vertex,he_01).size()-1 ; i >= 0 ; i-- )
-        {
-            m_PickedMesh->property(m_list_vertex,he_10).push_back(m_PickedMesh->property(m_list_vertex,he_01).at(i));
-        }
+        emit log(LOGERR,"Unable to create new Object");
     }
-
-    PolyMesh::FaceIter f_it;
-    PolyMesh::FaceIter f_end = m_PickedMesh->faces_end();
-
-    PolyMesh::FaceHalfedgeIter fh_it;
-
-    PolyMesh::VertexHandle vi;
-
-    for( f_it = m_PickedMesh->faces_begin() ; f_it != f_end ; f_it++ )
+    else
     {
-        std::cout << "change f " << *f_it << std::endl;
+        object->setName( "QuadrimeshDiscretized " + QString::number(newObject) );
 
-        m_fphandles.clear();
+        newMesh = object->mesh();
+        newMesh->clear();
 
-        int halfe = 0;
-        for( fh_it = m_PickedMesh->fh_iter(*f_it) ; fh_it.is_valid() ; ++fh_it)
+        PolyMesh::VertexIter v_it;
+        PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+
+        for( v_it = m_PickedMesh->vertices_begin() ; v_it != v_end ; v_it++ )
         {
-            for( int i = 0 ; i < m_PickedMesh->property(m_list_vertex,he_01).size() ; i++ )
+            PolyMesh::VertexHandle vh;
+            PolyMesh::Point p;
+            vh = *v_it;
+            p = m_PickedMesh->point(vh);
+            newMesh->add_vertex(p);
+        }
+
+        PolyMesh::EdgeIter e_it;
+        PolyMesh::EdgeIter e_end = m_PickedMesh->edges_end();
+
+        PolyMesh::EdgeHandle he;
+        PolyMesh::HalfedgeHandle he_01, he_10;
+
+        PolyMesh::VertexHandle vh0, vh1, vhi;
+        PolyMesh::Point p0, p1, pi;
+
+        for( e_it = m_PickedMesh->edges_begin() ; e_it != e_end ; e_it++ )
+        {
+            he = *e_it;
+
+            he_01 = m_PickedMesh->halfedge_handle(he,0);
+            he_10 = m_PickedMesh->halfedge_handle(he,1);
+
+            vh0 = m_PickedMesh->from_vertex_handle(he_01);
+            m_PickedMesh->property(m_list_vertex,he_01).push_back(vh0);
+
+            vh1 = m_PickedMesh->to_vertex_handle(he_01);
+
+            p0 = m_PickedMesh->point(vh0);
+            p1 = m_PickedMesh->point(vh1);
+
+            for( int i = 0 ; i < m_discretize ; i++ )
             {
-                vi = m_PickedMesh->vertex_handle(m_PickedMesh->property(m_list_vertex,fh_it).at(i));
-                if( i > 0 && i <= m_discretize)
-                {
-                    m_fphandles.push_back(vi);
-                }
-                else if( i == 0 && halfe == 0 )
-                {
-                    m_fphandles.push_back(vi);
-                }
-                else if( i == m_discretize+1 && halfe < 3 )
-                {
-                    m_fphandles.push_back(vi);
-                }
+                double a = double(i+1)/double(m_discretize+1);
+                pi = a*p0 + (1-a)*p1;
+                vhi = newMesh->add_vertex(pi);
+                m_PickedMesh->property(m_list_vertex,he_01).push_back(vhi);
             }
-            halfe++;
+            m_PickedMesh->property(m_list_vertex,he_01).push_back(vh1);
+
+            for( int i = m_PickedMesh->property(m_list_vertex,he_01).size()-1 ; i >= 0 ; i-- )
+            {
+                m_PickedMesh->property(m_list_vertex,he_10).push_back(m_PickedMesh->property(m_list_vertex,he_01).at(i));
+            }
         }
 
-        PolyMesh::FaceHandle f = m_PickedMesh->add_face(m_fphandles);
-        std::cout << "f added : " << f << std::endl;
-    }
+        PolyMesh::FaceIter f_it;
+        PolyMesh::FaceIter f_end = m_PickedMesh->faces_end();
 
-    m_PickedMesh->update_normals();
+        PolyMesh::FaceHalfedgeIter fh_it;
 
-    int nbF = 0;
-    for( f_it = m_PickedMesh->faces_begin() ; f_it != f_end ; f_it++ )
-    {
-        if( nbF < m_faces )
+        PolyMesh::VertexHandle vi;
+
+        for( f_it = m_PickedMesh->faces_begin() ; f_it != f_end ; f_it++ )
         {
-            m_PickedMesh->delete_face(*f_it,false);
+            m_fphandles.clear();
+            int halfe = 0;
+            for( fh_it = m_PickedMesh->fh_iter(*f_it) ; fh_it.is_valid() ; ++fh_it)
+            {
+                for( int i = 0 ; i < m_PickedMesh->property(m_list_vertex,*fh_it).size() ; i++ )
+                {
+                    vi = m_PickedMesh->property(m_list_vertex,*fh_it).at(i);
+                    if( i > 0 && i <= m_discretize)
+                    {
+                        m_fphandles.push_back(vi);
+                    }
+                    else if( i == 0 && halfe == 0 )
+                    {
+                        m_fphandles.push_back(vi);
+                    }
+                    else if( i == m_discretize+1 && halfe < 3 )
+                    {
+                        m_fphandles.push_back(vi);
+                    }
+                }
+                halfe++;
+            }
+
+            newMesh->add_face(m_fphandles);
         }
-        nbF++;
+
+        newMesh->update_normals();
+
+        m_PickedMesh->clear();
+        m_PickedMesh = newMesh;
+
+        m_vertices = m_PickedMesh->n_vertices();
+        m_edges = m_PickedMesh->n_edges();
+        m_faces = m_PickedMesh->n_faces();
+
+        m_IdObject = newObject;
+
+        save(m_IdObject,"/Users/Juju/Documents/project/files/QuadmeshDiscretized.ply");
+
+        PluginFunctions::setDrawMode(ACG::SceneGraph::DrawModes::WIREFRAME);
+        emit updatedObject(m_IdObject,UPDATE_ALL);
+
+        PluginFunctions::viewAll();
     }
-
-    m_PickedMesh->garbage_collection();
-
-    m_PickedMesh->update_normals();
-
-    save(m_IdObject,"/Users/Juju/Documents/project/files/QuadmeshDiscretized.ply");
-
-    PluginFunctions::setDrawMode(ACG::SceneGraph::DrawModes::WIREFRAME);
-    emit updatedObject(m_IdObject,UPDATE_ALL);
-
-    PluginFunctions::viewAll();
 }
 
 //**********************************************************************************************
@@ -436,6 +447,8 @@ void mmPlugin::discretizeLenght()
 //**********************************************************************************************
 void mmPlugin::solveOptimazation()
 {
+    discretButton->setDisabled(true);
+
     getPoints();
     solveShape();
     setNewPositions();
@@ -464,25 +477,26 @@ void mmPlugin::getPoints()
     }
 
     // GET ALL THE EDGES
-    int nbedges = 0;
-    for( int j = 0 ; j < m_sizeY ; j++ )
-    {
-        for( int i = 0 ; i < m_sizeX ; i++)
-        {
-            if( i < m_sizeX-1)
-            {
-                m_ME(nbedges,0) = j*m_sizeX+i;
-                m_ME(nbedges,1) = j*m_sizeX+(i+1);
-                nbedges++;
-            }
+    PolyMesh::EdgeIter e_it;
+    PolyMesh::EdgeIter e_end = m_PickedMesh->edges_end();
 
-            if( j < m_sizeY-1)
-            {
-                m_ME(nbedges,0) = j*m_sizeX+i;
-                m_ME(nbedges,1) = (j+1)*m_sizeX+i;
-                nbedges++;
-            }
-        }
+    PolyMesh::EdgeHandle he;
+    PolyMesh::HalfedgeHandle he_01;
+
+    PolyMesh::VertexHandle vh0, vh1;
+
+    int nbedges = 0;
+    for( e_it = m_PickedMesh->edges_begin() ; e_it != e_end ; e_it++ )
+    {
+        he = *e_it;
+        he_01 = m_PickedMesh->halfedge_handle(he,0);
+        vh0 = m_PickedMesh->from_vertex_handle(he_01);
+        vh1 = m_PickedMesh->to_vertex_handle(he_01);
+
+
+        m_ME(nbedges,0) = vh0.idx();
+        m_ME(nbedges,1) = vh1.idx();
+        nbedges++;
     }
 }
 
@@ -490,8 +504,8 @@ void mmPlugin::solveShape()
 {
     ShapeOp::Solver s;
     s.setPoints(m_MV);
-    ShapeOp::Scalar edgelength_weight = 7.0;
-    ShapeOp::Scalar closeness_weight = 10;
+    ShapeOp::Scalar edgelength_weight = 140;
+    ShapeOp::Scalar closeness_weight = 200;
 
     //add a closeness constraint to the fixed vertex.
     for(int i = 0 ; i < m_idFixed.size()  ; i++)
@@ -518,13 +532,13 @@ void mmPlugin::solveShape()
         id_vector.push_back(m_ME(i,0));
         id_vector.push_back(m_ME(i,1));
         auto edge_constraint = std::make_shared<ShapeOp::EdgeStrainConstraint>(id_vector,edgelength_weight,s.getPoints());
-        edge_constraint->setEdgeLength(1);
+        //edge_constraint->setEdgeLength(1);
         s.addConstraint(edge_constraint);
     }
 
     //add gravity constraint
     {
-        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-1));
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.5));
         s.addForces(gravity_force);
     }
 

@@ -54,6 +54,8 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        ShapeOp::MatrixXX m_ME;
        ShapeOp::Matrix3X m_MV;
 
+       //OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
+       OpenMesh::HPropHandleT<std::vector<int>> m_list_vertex;
        int m_IdObject;
 
        int m_FixPoint;
@@ -62,6 +64,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        int m_sizeY;
        int m_vertices;
        int m_edges;
+       int m_faces;
 
        QSpinBox* sizeXSpin;
        QSpinBox* sizeYSpin;

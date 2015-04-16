@@ -5,13 +5,12 @@
 #include <OpenFlipper/BasePlugin/ToolboxInterface.hh>
 #include <OpenFlipper/BasePlugin/LoggingInterface.hh>
 #include <OpenFlipper/BasePlugin/MouseInterface.hh>
+#include <OpenFlipper/BasePlugin/KeyInterface.hh>
 #include <OpenFlipper/BasePlugin/PickingInterface.hh>
 #include <OpenFlipper/BasePlugin/LoadSaveInterface.hh>
 #include <OpenFlipper/BasePlugin/PluginFunctions.hh>
 #include <OpenFlipper/BasePlugin/RPCInterface.hh>
-
-//#include <OpenFlipper/Core/Core.hh>
-//#include <OpenFlipper/widgets/aboutWidget/aboutWidget.hh>
+#include <ObjectTypes/Coordsys/CoordinateSystemNode.hh>
 
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>
 
@@ -22,7 +21,7 @@
 
 #include <cmath>
 
-class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
+class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
                         LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface, RPCInterface
 {
   Q_OBJECT
@@ -30,6 +29,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
   Q_INTERFACES(ToolboxInterface)
   Q_INTERFACES(LoggingInterface)
   Q_INTERFACES(MouseInterface)
+  Q_INTERFACES(KeyInterface)
   Q_INTERFACES(PickingInterface)
   Q_INTERFACES(LoadSaveInterface)
   Q_INTERFACES(RPCInterface)
@@ -39,11 +39,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        PolyMesh* m_PickedMesh;
 
        std::vector<PolyMesh::VertexHandle> m_vh0;
-       std::vector<PolyMesh::VertexHandle> m_vh1;
-       std::vector<PolyMesh::VertexHandle> m_vh2;
-       std::vector<PolyMesh::VertexHandle> m_vh3;
-       std::vector<PolyMesh::VertexHandle> m_vh4;
-
        std::vector<PolyMesh::VertexHandle> m_fphandles;
 
        std::vector<int> m_idFixed;
@@ -55,7 +50,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        ShapeOp::Matrix3X m_MV;
 
        OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
-       //OpenMesh::HPropHandleT<std::vector<int>> m_list_vertex;
        int m_IdObject;
 
        int m_FixPoint;
@@ -66,6 +60,15 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        int m_edges;
        int m_faces;
 
+       bool m_pickMode;
+       bool m_dragMode;
+
+       int m_dragedVertex;
+       PolyMesh::VertexIter m_Draged;
+
+       QPoint m_oldPos;
+       QPoint m_newPos;
+
        QSpinBox* sizeXSpin;
        QSpinBox* sizeYSpin;
        QPushButton* loadButton;
@@ -74,15 +77,19 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
        QSpinBox* discretizeSpin;
        QPushButton* discretButton;
        QPushButton* solveButton;
+       QPushButton* dragButton;
 
   public:
         // BaseInterface
         QString name() { return (QString("Move Mesh Plugin by Juliette")); };
         QString description( ) { return (QString("Move vertex of a mesh and update all the other")); };
 
+        void slotAllCleared();
+
        // MoveMesh
        int createNewObject();
-       void findSelectVertex();
+       void findSelectVertex_fixed();
+       void findSelectVertex_draged();
 
        //Solve
        void getPoints();
@@ -98,8 +105,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
         void discretizeLenght();
         void changeDiscretizeValue();
         void solveOptimazation();
-
-                void allCleared();
+        void dragVertex();
 
    private slots:   
         // BaseInterface
@@ -108,6 +114,9 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
 
         // MouseInterface
         void slotMouseEvent(QMouseEvent* _event);
+
+        //KeyInterface
+        void slotKeyEvent( QKeyEvent* _event );
 
    signals:
         //BaseInterface
@@ -120,13 +129,17 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface,
 
         //PickingInterface
         void addPickMode( const std::string& _mode);
+        //void slotPickModeChanged( const std::string & _mode);
 
         // ToolboxInterface
-        void addToolbox( QString _name  , QWidget* _widget);
+        void addToolbox( QString _name  , QWidget* _widget, QIcon* _icon );
 
         // LoadSaveInterface
         void addEmptyObject( DataType _type, int& _id);
         void save(int _id, QString _filename);
+
+        //KeyInterface
+        void registerKey(int _key, Qt::KeyboardModifiers _modifiers, QString _description, bool _multiUse = false);
 };
 
 #endif //mmPlugin

@@ -1,5 +1,5 @@
 include (plugin)
-openflipper_plugin ()
+openflipper_plugin (INSTALLDATA Icons)
 
 # Compiler flags
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang") #Tests for Clang and AppleClang which is defined in CMake 3.0 and higher

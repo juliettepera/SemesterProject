@@ -15,6 +15,24 @@ void mmPlugin::initializePlugin()
     m_posFixed.clear();
     m_hitPoint = OpenMesh::Vec3d(0,0,0);
 
+    m_pickMode = 0;
+    m_dragMode = 0;
+    m_dragedVertex = 0;
+
+
+    // Register keys
+    emit registerKey( Qt::Key_O, Qt::NoModifier, "Move vertex foward");
+    emit registerKey( Qt::Key_M, Qt::NoModifier, "Move vertex backward");
+    emit registerKey( Qt::Key_J, Qt::NoModifier, "Move vertex left");
+    emit registerKey( Qt::Key_L, Qt::NoModifier, "Move vertex right");
+    emit registerKey( Qt::Key_K, Qt::NoModifier, "Move vertex down");
+    emit registerKey( Qt::Key_I, Qt::NoModifier, "Move vertex up");
+    emit registerKey(Qt::Key_Return, Qt::NoModifier, "stop enabling drag");
+
+
+    QIcon* toolIcon = new QIcon(OpenFlipper::Options::iconDirStr()+OpenFlipper::Options::dirSeparator()+"icon.png");
+
+
     //**********************************************************************************************
     QWidget* toolBox = new QWidget();
 
@@ -40,9 +58,12 @@ void mmPlugin::initializePlugin()
     solveButton = new QPushButton("&Solve",toolBox);
     solveButton->setDisabled(true);
 
+    dragButton = new QPushButton("&Drag",toolBox);
+    dragButton->setEnabled(true);
+
     fixPointSpin = new QSpinBox(toolBox);
     fixPointSpin->setMinimum(1);
-    fixPointSpin->setMaximum(10);
+    fixPointSpin->setMaximum(20);
     fixPointSpin->setValue(4);
     fixPointSpin->setDisabled(true);
 
@@ -51,6 +72,7 @@ void mmPlugin::initializePlugin()
     discretizeSpin->setMaximum(5);
     discretizeSpin->setValue(1);
     discretizeSpin->setDisabled(true);
+
     
     QGridLayout* layout = new QGridLayout(toolBox);
 
@@ -62,6 +84,7 @@ void mmPlugin::initializePlugin()
     layout->addWidget( discretizeSpin, 3, 1);
     layout->addWidget( discretButton , 3, 2);
     layout->addWidget( solveButton , 4, 1);
+    layout->addWidget( dragButton , 5, 1);
 
     layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
 
@@ -74,9 +97,10 @@ void mmPlugin::initializePlugin()
     connect( discretButton, SIGNAL(clicked()), this, SLOT(discretizeLenght()));
     connect( discretizeSpin , SIGNAL(valueChanged(int)) , this, SLOT(changeDiscretizeValue()));
     connect( solveButton, SIGNAL(clicked()), this, SLOT(solveOptimazation()));
-    //connect( , SIGNAL(clicked()), this, SLOT(allCleared()));
+    connect( dragButton, SIGNAL(clicked()), this, SLOT(dragVertex()));
 
-    emit addToolbox( tr("MoveMesh") , toolBox );
+
+    emit addToolbox( tr("MoveMesh") , toolBox , toolIcon );
 }
 
 //**********************************************************************************************
@@ -84,19 +108,15 @@ void mmPlugin::pluginsInitialized()
 {
     emit log(LOGWARN,"Move Mesh Initialized");
     emit addPickMode("MyPickMode");
+    emit addPickMode("DragVertex");
+    emit setPickModeMouseTracking("DragVertex",true);
     loadButton->setEnabled(true);
 }
 
-void mmPlugin::allCleared()
+void mmPlugin::slotAllCleared()
 {
-    loadButton->setEnabled(true);
-    sizeXSpin->setEnabled(true);
-    sizeYSpin->setEnabled(true);
-    pickButton->setEnabled(true);
-    fixPointSpin->setEnabled(true);
-    discretizeSpin->setEnabled(true);
-    discretButton->setEnabled(true);
-    solveButton->setEnabled(true);
+    std::cout << "slot all cleared" << std::endl;
+    //initializePlugin();
 }
 
 //**********************************************************************************************
@@ -234,33 +254,71 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             if ( PluginFunctions::scenegraphPick(ACG::SceneGraph::PICK_ANYTHING,_event->pos(), node_idx, target_idx, &hitPoint) )
             {
                 m_hitPoint = hitPoint;
-                findSelectVertex();
+                findSelectVertex_fixed();
             }
             else
             {
                 std::cout << "not on the mesh " << std::endl;
             }
+
+            m_pickMode = 1;
         }
     }
-
-    if( m_idFixed.size() < m_FixPoint )
+    else if( PluginFunctions::pickMode() == "DragVertex" && PluginFunctions::actionMode() == Viewer::PickingMode)
     {
-        PluginFunctions::actionMode(Viewer::PickingMode);
-        PluginFunctions::pickMode("MyPickMode");
+        std::cout << "drag mode" << std::endl;
+
+        if( _event->type() == QEvent::MouseButtonPress )
+        {
+            unsigned int node_idx, target_idx;
+            OpenMesh::Vec3d hitPoint;
+
+            if ( PluginFunctions::scenegraphPick(ACG::SceneGraph::PICK_ANYTHING,_event->pos(), node_idx, target_idx, &hitPoint) )
+            {
+                m_hitPoint = hitPoint;
+                findSelectVertex_draged();
+            }
+            else
+            {
+                std::cout << "not on the mesh " << std::endl;
+            }
+            m_dragMode = 1;
+        }
     }
     else
     {
-        std::cout << "no more fix points possible" << std::endl;
-        pickButton->setDisabled(true);
-        discretButton->setEnabled(true);
-        discretizeSpin->setEnabled(true);
-        solveButton->setEnabled(true);
-        PluginFunctions::actionMode(Viewer::ExamineMode);
+        return;
     }
 
+    if( m_pickMode == 1 )
+    {
+        if( m_idFixed.size() < m_FixPoint )
+        {
+            PluginFunctions::actionMode(Viewer::PickingMode);
+            PluginFunctions::pickMode("MyPickMode");
+        }
+        else
+        {
+            pickButton->setDisabled(true);
+            discretButton->setEnabled(true);
+            discretizeSpin->setEnabled(true);
+            solveButton->setEnabled(true);
+            PluginFunctions::actionMode(Viewer::ExamineMode);
+        }
+        m_pickMode = 0;
+    }
+    else if( m_dragMode == 1 )
+    {
+        PluginFunctions::actionMode(Viewer::ExamineMode);
+        m_dragMode = 0;
+    }
+    else
+    {
+        return;
+    }
 }
 
-void mmPlugin::findSelectVertex()
+void mmPlugin::findSelectVertex_fixed()
 {
     PolyMesh::VertexIter v_it;
     PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
@@ -293,15 +351,47 @@ void mmPlugin::findSelectVertex()
                 m_idFixed.push_back((*v_it).idx());
                 Vector v(p[0],p[1],p[2]);
                 m_posFixed.push_back(v);
-                std::cout << "fix point# " << m_idFixed.size() << " : " << v << std::endl;
                 RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
             }
         }
     }
 
-    save(m_IdObject,"/Users/Juju/Documents/project/files/OutputSolver.ply");
     emit updatedObject(m_IdObject,UPDATE_ALL);
     PluginFunctions::viewAll();
+}
+
+void mmPlugin::findSelectVertex_draged()
+{
+    PolyMesh::VertexIter v_it;
+    PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+
+    OpenMesh::Vec3d ActualPoint;
+
+    for (v_it = m_PickedMesh->vertices_begin(); v_it != v_end; ++v_it)
+    {
+        ActualPoint = m_PickedMesh->point( *v_it );
+
+        double X = fabs(double(ActualPoint[0])-double(m_hitPoint[0]));
+        double Y = fabs(double(ActualPoint[1])-double(m_hitPoint[1]));
+        double Z = fabs(double(ActualPoint[2])-double(m_hitPoint[2]));
+
+        if( (X<=1) && (Y<=1) && (Z<=1) )
+        {
+            for( int i = 0 ; i < m_idFixed.size() ; i++)
+            {
+                if( (*v_it).idx() == m_idFixed[i] )
+                {
+                    m_Draged = v_it;
+                    m_dragedVertex = (*v_it).idx();
+                    std::cout << " you can drag "<< std::endl;
+                    return;
+                }
+            }
+            std::cout << "not dragable" << std::endl;
+        }
+    }
+
+    m_dragedVertex = -1;
 }
 
 //**********************************************************************************************
@@ -443,7 +533,6 @@ void mmPlugin::discretizeLenght()
 
 //**********************************************************************************************
 // Solve the Optimization
-// Not working yet
 //**********************************************************************************************
 void mmPlugin::solveOptimazation()
 {
@@ -452,6 +541,8 @@ void mmPlugin::solveOptimazation()
     getPoints();
     solveShape();
     setNewPositions();
+
+    dragButton->setEnabled( true );
 }
 
 void mmPlugin::getPoints()
@@ -504,8 +595,9 @@ void mmPlugin::solveShape()
 {
     ShapeOp::Solver s;
     s.setPoints(m_MV);
-    ShapeOp::Scalar edgelength_weight = 140;
+    ShapeOp::Scalar edgelength_weight = 200;
     ShapeOp::Scalar closeness_weight = 200;
+    //ShapeOp::Scalar laplacian_weight = 200;
 
     //add a closeness constraint to the fixed vertex.
     for(int i = 0 ; i < m_idFixed.size()  ; i++)
@@ -532,19 +624,30 @@ void mmPlugin::solveShape()
         id_vector.push_back(m_ME(i,0));
         id_vector.push_back(m_ME(i,1));
         auto edge_constraint = std::make_shared<ShapeOp::EdgeStrainConstraint>(id_vector,edgelength_weight,s.getPoints());
-        //edge_constraint->setEdgeLength(1);
+        edge_constraint->setEdgeLength(1);
         s.addConstraint(edge_constraint);
     }
 
     //add gravity constraint
     {
-        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.5));
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.05));
         s.addForces(gravity_force);
     }
+
+    // add laplacian constraint
+    /*for( int i = 0; i < m_MV.rows() ; i++)
+    {
+        std::vector<int> id_vector;
+        id_vector.push_back();
+        auto laplacian_constraint = std::make_shared<ShapeOp::UniformLaplacianConstraint>(id_vector,laplacian_weight,s.getPoints());
+    }*/
+
 
     s.initialize(false);
     s.solve(500);
     m_MV = s.getPoints();
+
+
 }
 
 void mmPlugin::setNewPositions()
@@ -564,6 +667,69 @@ void mmPlugin::setNewPositions()
     }
 
     emit updatedObject(m_IdObject,UPDATE_ALL);
+}
+
+//**********************************************************************************************
+// Drag the fixed vertex onto new positions
+//**********************************************************************************************
+void mmPlugin::dragVertex()
+{
+    PluginFunctions::actionMode(Viewer::PickingMode);
+    PluginFunctions::pickMode("DragVertex");
+}
+
+void mmPlugin::slotKeyEvent( QKeyEvent* _event )
+{
+    PolyMesh::Point p = m_PickedMesh->point(*m_Draged);
+
+    // Switch pressed keys
+    if( m_dragedVertex != -1 )
+    {
+        switch (_event->key())
+        {
+        case Qt::Key_O :
+            std::cout << "move foward" <<std::endl;
+            p[0] = p[0]-1;
+            break;
+        case Qt::Key_M :
+            std::cout << "move backward" <<std::endl;
+            p[0] = p[0]+1;
+            break;
+        case Qt::Key_J:
+            std::cout << "move left" <<std::endl;
+            p[1] = p[1]+1;
+            break;
+        case Qt::Key_L :
+            std::cout << "move right" <<std::endl;
+            p[1] = p[1]-1;
+            break;
+        case Qt::Key_K :
+            std::cout << "move down" <<std::endl;
+            p[2] = p[2]-1;
+            break;
+        case Qt::Key_I :
+            std::cout << "move up" <<std::endl;
+            p[2] = p[2]+1;
+            break;
+         case Qt::Key_Return :
+            std::cout << "stop move" <<std::endl;
+            m_dragedVertex = 0;
+        default:
+            break;
+        }
+    }
+
+    m_PickedMesh->set_point(*m_Draged,p);
+    for( int i = 0; i<m_idFixed.size() ; i++)
+    {
+        if(m_dragedVertex == m_idFixed[i])
+        {
+            m_posFixed[i] = p;
+        }
+    }
+
+    emit updatedObject(m_IdObject, UPDATE_GEOMETRY);
+    emit updateView();
 }
 
 //**********************************************************************************************

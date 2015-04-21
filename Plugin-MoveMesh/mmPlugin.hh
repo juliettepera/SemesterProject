@@ -60,8 +60,10 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
        int m_edges;
        int m_faces;
 
+       double m_length;
+
        bool m_pickMode;
-       bool m_dragMode;
+       int m_dragMode;
 
        int m_dragedVertex;
        PolyMesh::VertexIter m_Draged;
@@ -83,8 +85,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
         // BaseInterface
         QString name() { return (QString("Move Mesh Plugin by Juliette")); };
         QString description( ) { return (QString("Move vertex of a mesh and update all the other")); };
-
-        void slotAllCleared();
 
        // MoveMesh
        int createNewObject();
@@ -111,16 +111,16 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
         // BaseInterface
         void initializePlugin();
         void pluginsInitialized();
+        void slotAllCleared();
+
 
         // MouseInterface
         void slotMouseEvent(QMouseEvent* _event);
 
-        //KeyInterface
-        void slotKeyEvent( QKeyEvent* _event );
+
 
    signals:
         //BaseInterface
-        //void updateView();
         void updatedObject(int _id, const UpdateType& _type);
 
         //LoggingInterface
@@ -129,7 +129,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
 
         //PickingInterface
         void addPickMode( const std::string& _mode);
-        //void slotPickModeChanged( const std::string & _mode);
 
         // ToolboxInterface
         void addToolbox( QString _name  , QWidget* _widget, QIcon* _icon );
@@ -138,8 +137,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
         void addEmptyObject( DataType _type, int& _id);
         void save(int _id, QString _filename);
 
-        //KeyInterface
-        void registerKey(int _key, Qt::KeyboardModifiers _modifiers, QString _description, bool _multiUse = false);
 };
 
 #endif //mmPlugin

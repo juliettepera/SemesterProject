@@ -48,6 +48,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
 
        ShapeOp::MatrixXX m_ME;
        ShapeOp::Matrix3X m_MV;
+       ShapeOp::MatrixXX m_ML;
 
        OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
        int m_IdObject;
@@ -59,8 +60,6 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
        int m_vertices;
        int m_edges;
        int m_faces;
-
-       double m_length;
 
        bool m_pickMode;
        int m_dragMode;

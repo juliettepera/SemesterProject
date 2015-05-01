@@ -39,6 +39,7 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
        PolyMesh* m_PickedMesh;
 
        std::vector<PolyMesh::VertexHandle> m_vh0;
+       std::vector<PolyMesh::VertexHandle> m_vh1;
        std::vector<PolyMesh::VertexHandle> m_fphandles;
 
        std::vector<int> m_idFixed;
@@ -72,11 +73,13 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
 
        QSpinBox* sizeXSpin;
        QSpinBox* sizeYSpin;
+       QSpinBox* discretizeSpin;
+
        QPushButton* loadButton;
+
        QSpinBox* fixPointSpin;
        QPushButton* pickButton;
-       QSpinBox* discretizeSpin;
-       QPushButton* discretButton;
+
        QPushButton* solveButton;
        QPushButton* dragButton;
 
@@ -85,10 +88,12 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
         QString name() { return (QString("Move Mesh Plugin by Juliette")); };
         QString description( ) { return (QString("Move vertex of a mesh and update all the other")); };
 
-       // MoveMesh
-       int createNewObject();
-       void findSelectVertex_fixed();
-       void findSelectVertex_draged();
+        // MoveMesh
+        int createNewObject();
+        void discretizeLenght();
+
+        void findSelectVertex_fixed();
+        void findSelectVertex_draged();
 
        //Solve
        void getPoints();
@@ -99,10 +104,10 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
    public slots:
         int addQuadrimesh();
         void changeXYValue();
+
         void pickVertex();
         void changeFixPointValue();
-        void discretizeLenght();
-        void changeDiscretizeValue();
+
         void solveOptimazation();
         void dragVertex();
 

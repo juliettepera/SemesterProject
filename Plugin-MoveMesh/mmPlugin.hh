@@ -62,6 +62,8 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
        int m_edges;
        int m_faces;
 
+       int m_nbL;
+
        bool m_pickMode;
        int m_dragMode;
 

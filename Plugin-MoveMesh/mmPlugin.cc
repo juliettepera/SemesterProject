@@ -16,6 +16,7 @@ void mmPlugin::initializePlugin()
     m_hitPoint = OpenMesh::Vec3d(0,0,0);
     m_vh0.clear();
     m_fphandles.clear();
+    m_nbL = 0;
 
     m_pickMode = 0;
     m_dragMode = 0;
@@ -39,7 +40,7 @@ void mmPlugin::initializePlugin()
 
     discretizeSpin = new QSpinBox(toolBox);
     discretizeSpin->setMinimum(0);
-    discretizeSpin->setMaximum(1);
+    discretizeSpin->setMaximum(4);
     discretizeSpin->setValue(0);
 
     loadButton = new QPushButton("&Load",toolBox);
@@ -117,6 +118,8 @@ void mmPlugin::slotAllCleared()
     m_hitPoint = OpenMesh::Vec3d(0,0,0);
     m_vh0.clear();
     m_fphandles.clear();
+    m_nbL = 0;
+
 
     m_pickMode = 0;
     m_dragMode = 0;
@@ -136,7 +139,7 @@ void mmPlugin::slotAllCleared()
     fixPointSpin->setDisabled(true);
     pickButton->setDisabled(true);
     solveButton->setDisabled(true);
-    dragButton->setDisabled(true);    
+    dragButton->setDisabled(true);
 }
 
 //**********************************************************************************************
@@ -290,8 +293,8 @@ void mmPlugin::discretizeLenght()
             int nbLaplacian = ((m_sizeX+(m_sizeX-1)*m_discretize)-2)*m_sizeY + ((m_sizeY+(m_sizeY-1)*m_discretize)-2)*m_sizeX;
             m_ML.resize(nbLaplacian,3);
             m_ML.setConstant(-1);
-            int nbL = 0;
             int nbI = 0;
+            m_nbL = 0;
 
             for( e_it = m_PickedMesh->edges_begin() ; e_it != e_end ; e_it++ )
             {
@@ -301,41 +304,43 @@ void mmPlugin::discretizeLenght()
                 he_10 = m_PickedMesh->halfedge_handle(he,1);
 
                 vh0 = m_PickedMesh->from_vertex_handle(he_01);
+                p0 = m_PickedMesh->point(vh0);
+                //vh0 = newMesh->add_vertex(p0);
                 m_PickedMesh->property(m_list_vertex,he_01).push_back(vh0);
 
                 nbI = 0;
-                m_ML(nbL,nbI) = vh0.idx();
-                std::cout << "m_ML(" << nbL << "," << nbI << ") = " << m_ML(nbL,nbI) << std::endl;
+                m_ML(m_nbL,nbI) = vh0.idx();
+                std::cout << "m_ML(" << m_nbL << "," << nbI << ") = " << m_ML(m_nbL,nbI) << std::endl;
                 nbI++;
 
                 vh1 = m_PickedMesh->to_vertex_handle(he_01);
-
-                p0 = m_PickedMesh->point(vh0);
                 p1 = m_PickedMesh->point(vh1);
+                //vh1 = newMesh->add_vertex(p1);
+
 
                 for( int i = 0 ; i < m_discretize ; i++ )
                 {
                     double a = double(i+1)/double(m_discretize+1);
-                    pi = a*p0 + (1-a)*p1;
+                    pi = (1-a)*p0 + a*p1;
                     vhi = newMesh->add_vertex(pi);
                     m_PickedMesh->property(m_list_vertex,he_01).push_back(vhi);
 
                     if( nbI <3 )
                     {
-                        m_ML(nbL,nbI) = vhi.idx();
-                        std::cout << "m_ML(" << nbL << "," << nbI << ") = " << m_ML(nbL,nbI) << std::endl;
+                        m_ML(m_nbL,nbI) = vhi.idx();
+                        std::cout << "m_ML(" << m_nbL << "," << nbI << ") = " << m_ML(m_nbL,nbI) << std::endl;
                         nbI++;
                     }
                     else
                     {
-                        nbL++;
+                        m_nbL++;
                         nbI = 0;
-                        m_ML(nbL,nbI) = vprev.idx();
-                        std::cout << "m_ML(" << nbL << "," << nbI << ") = " << m_ML(nbL,nbI) << std::endl;
+                        m_ML(m_nbL,nbI) = vprev.idx();
+                        std::cout << "m_ML(" << m_nbL << "," << nbI << ") = " << m_ML(m_nbL,nbI) << std::endl;
                         nbI++;
 
-                        m_ML(nbL,nbI) = vhi.idx();
-                        std::cout << "m_ML(" << nbL << "," << nbI << ") = " << m_ML(nbL,nbI) << std::endl;
+                        m_ML(m_nbL,nbI) = vhi.idx();
+                        std::cout << "m_ML(" << m_nbL << "," << nbI << ") = " << m_ML(m_nbL,nbI) << std::endl;
                         nbI++;
                     }
 
@@ -343,9 +348,9 @@ void mmPlugin::discretizeLenght()
                 }
                 m_PickedMesh->property(m_list_vertex,he_01).push_back(vh1);
 
-                m_ML(nbL,nbI) = vh1.idx();
-                std::cout << "m_ML(" << nbL << "," << nbI << ") = " << m_ML(nbL,nbI) << std::endl;
-                nbL++;
+                m_ML(m_nbL,nbI) = vh1.idx();
+                std::cout << "m_ML(" << m_nbL << "," << nbI << ") = " << m_ML(m_nbL,nbI) << std::endl;
+                m_nbL++;
 
                 for( int i = m_PickedMesh->property(m_list_vertex,he_01).size()-1 ; i >= 0 ; i-- )
                 {
@@ -364,27 +369,34 @@ void mmPlugin::discretizeLenght()
             {
                 m_fphandles.clear();
                 int halfe = 0;
+
                 for( fh_it = m_PickedMesh->fh_iter(*f_it) ; fh_it.is_valid() ; ++fh_it)
                 {
                     for( int i = 0 ; i < m_PickedMesh->property(m_list_vertex,*fh_it).size() ; i++ )
                     {
                         vi = m_PickedMesh->property(m_list_vertex,*fh_it).at(i);
-                        if( i > 0 && i <= m_discretize)
+
+                        if( halfe == 0 )
                         {
                             m_fphandles.push_back(vi);
                         }
-                        else if( i == 0 && halfe == 0 )
+                        else if( halfe == 1 || halfe == 2 )
                         {
-                            m_fphandles.push_back(vi);
+                            if( i != 0 )
+                            {
+                                m_fphandles.push_back(vi);
+                            }
                         }
-                        else if( i == m_discretize+1 && halfe < 3 )
+                        else if( halfe == 3 )
                         {
-                            m_fphandles.push_back(vi);
+                            if( i != 0 && i != m_PickedMesh->property(m_list_vertex,*fh_it).size()-1 )
+                            {
+                                m_fphandles.push_back(vi);
+                            }
                         }
                     }
                     halfe++;
                 }
-
                 newMesh->add_face(m_fphandles);
             }
 
@@ -547,6 +559,7 @@ void mmPlugin::findSelectVertex_fixed()
                 Vector v(p[0],p[1],p[2]);
                 m_posFixed.push_back(v);
                 RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
+                m_hitPoint = OpenMesh::Vec3d(-1,-1,-1);
             }
         }
     }
@@ -689,6 +702,72 @@ void mmPlugin::getPoints()
                 nbL++;
             }
         }
+    }
+    else
+    {
+        std::cout << "edge connection " << std::endl;
+        PolyMesh::VertexIter v_it;
+        PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+        PolyMesh::VertexVertexIter vv_it;
+
+        int valence = 0;
+        for( v_it = m_PickedMesh->vertices_begin() ; v_it != v_end ; v_it++ )
+        {
+            std::cout << "vertex #" << (*v_it).idx() << std::endl;
+            valence = m_PickedMesh->valence(*v_it);
+
+            if( valence == 3 )
+            {
+                int i = 0;
+
+                m_ML(m_nbL,1) = (*v_it).idx();
+                std::cout << "m_ML(" << m_nbL << "," << 1 << ") = " << m_ML(m_nbL,1) << std::endl;
+
+                for ( vv_it = m_PickedMesh->vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+                {
+                    if( m_PickedMesh->is_boundary(*vv_it) )
+                    {
+                        m_ML(m_nbL,i) = (*vv_it).idx();
+                        std::cout << "m_ML(" << m_nbL << "," << i << ") = " << m_ML(m_nbL,i) << std::endl;
+
+                        i=i+2;
+                    }
+                }
+                m_nbL++;
+
+            }
+            else if( valence == 4 )
+            {
+                int i = 0;
+                int j = 0;
+
+                m_ML(m_nbL,1) = (*v_it).idx();
+                std::cout << "m_ML1(" << m_nbL << "," << 0 << ") = " << m_ML(m_nbL,1) << std::endl;
+
+                m_ML(m_nbL+1,1) = (*v_it).idx();
+                std::cout << "m_ML2(" << m_nbL+1 << "," << 0 << ") = " << m_ML(m_nbL+1,1) << std::endl;
+
+                for ( vv_it = m_PickedMesh->vv_iter(*v_it); vv_it.is_valid(); ++vv_it)
+                {
+                    if( (*vv_it).idx()%2 == 0 )
+                    {
+                        m_ML(m_nbL,i) = (*vv_it).idx();
+                        std::cout << "m_ML1(" << m_nbL << "," << i << ") = " << m_ML(m_nbL,i) << std::endl;
+
+                        i=i+2;
+                    }
+                    else
+                    {
+                        m_ML(m_nbL+1,j) = (*vv_it).idx();
+                        std::cout << "m_ML2(" << m_nbL+1 << "," << j << ") = " << m_ML(m_nbL+1,j) << std::endl;
+
+                        j=j+2;
+                    }
+                }
+                m_nbL=m_nbL+2;
+            }
+        }
+
     }
 }
 

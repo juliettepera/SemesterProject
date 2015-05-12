@@ -22,126 +22,119 @@
 #include <cmath>
 
 class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
-                        LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface, RPCInterface
+        LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface, RPCInterface
 {
-  Q_OBJECT
-  Q_INTERFACES(BaseInterface)
-  Q_INTERFACES(ToolboxInterface)
-  Q_INTERFACES(LoggingInterface)
-  Q_INTERFACES(MouseInterface)
-  Q_INTERFACES(KeyInterface)
-  Q_INTERFACES(PickingInterface)
-  Q_INTERFACES(LoadSaveInterface)
-  Q_INTERFACES(RPCInterface)
+    Q_OBJECT
+    Q_INTERFACES(BaseInterface)
+    Q_INTERFACES(ToolboxInterface)
+    Q_INTERFACES(LoggingInterface)
+    Q_INTERFACES(MouseInterface)
+    Q_INTERFACES(KeyInterface)
+    Q_INTERFACES(PickingInterface)
+    Q_INTERFACES(LoadSaveInterface)
+    Q_INTERFACES(RPCInterface)
 
-  private:
+private:
 
-       PolyMesh* m_PickedMesh;
+    PolyMesh* m_PickedMesh;
+    std::vector<PolyMesh::VertexHandle> m_vh0;
+    std::vector<PolyMesh::VertexHandle> m_fphandles;
+    std::vector<int> m_idFixed;
+    std::vector<Vector> m_posFixed;
+    OpenMesh::Vec3d m_hitPoint;
+    ShapeOp::Matrix3X m_MV;
 
-       std::vector<PolyMesh::VertexHandle> m_vh0;
-       std::vector<PolyMesh::VertexHandle> m_vh1;
-       std::vector<PolyMesh::VertexHandle> m_fphandles;
+    std::vector< std::vector<int> > m_EdgesCons;
+    std::vector< std::vector<int> > m_LaplaceCons;
 
-       std::vector<int> m_idFixed;
-       std::vector<Vector> m_posFixed;
+    ShapeOp::MatrixXX m_ML;
+    OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
+    int m_IdObject;
+    int m_FixPoint;
+    int m_discretize;
+    int m_sizeX;
+    int m_sizeY;
+    int m_vertices;
+    int m_edges;
+    int m_faces;
+    int m_nbL;
+    bool m_pickMode;
+    int m_dragMode;
+    int m_dragedVertex;
+    PolyMesh::VertexIter m_Draged;
+    QPoint m_oldPos;
+    QPoint m_newPos;
+    int m_windIntensity;
+    ShapeOp::Vector3 m_windDirection;
 
-       OpenMesh::Vec3d m_hitPoint;
-
-       ShapeOp::MatrixXX m_ME;
-       ShapeOp::Matrix3X m_MV;
-       ShapeOp::MatrixXX m_ML;
-
-       OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
-       int m_IdObject;
-
-       int m_FixPoint;
-       int m_discretize;
-       int m_sizeX;
-       int m_sizeY;
-       int m_vertices;
-       int m_edges;
-       int m_faces;
-
-       int m_nbL;
-
-       bool m_pickMode;
-       int m_dragMode;
-
-       int m_dragedVertex;
-       PolyMesh::VertexIter m_Draged;
-
-       QPoint m_oldPos;
-       QPoint m_newPos;
-
-       QSpinBox* sizeXSpin;
-       QSpinBox* sizeYSpin;
-       QSpinBox* discretizeSpin;
-
-       QPushButton* loadButton;
-
-       QSpinBox* fixPointSpin;
-       QPushButton* pickButton;
-
-       QPushButton* solveButton;
-       QPushButton* dragButton;
-
-  public:
-        // BaseInterface
-        QString name() { return (QString("Move Mesh Plugin by Juliette")); };
-        QString description( ) { return (QString("Move vertex of a mesh and update all the other")); };
-
-        // MoveMesh
-        int createNewObject();
-        void discretizeLenght();
-
-        void findSelectVertex_fixed();
-        void findSelectVertex_draged();
-
-       //Solve
-       void getPoints();
-       void solveShape();
-       void setNewPositions();
+    QSpinBox* sizeXSpin;
+    QSpinBox* sizeYSpin;
+    QSpinBox* discretizeSpin;
+    QPushButton* loadButton;
+    QSpinBox* fixPointSpin;
+    QPushButton* pickButton;
+    QPushButton* solveButton;
+    QPushButton* dragButton;
+    QSlider* windSlider;
+    QDoubleSpinBox* windXSpin;
+    QDoubleSpinBox* windYSpin;
+    QDoubleSpinBox* windZSpin;
 
 
-   public slots:
-        int addQuadrimesh();
-        void changeXYValue();
+public:
+    // BaseInterface
+    QString name() { return (QString("Move Mesh Plugin by Juliette")); };
+    QString description( ) { return (QString("Move vertex of a mesh and update all the other")); };
 
-        void pickVertex();
-        void changeFixPointValue();
-
-        void solveOptimazation();
-        void dragVertex();
-
-   private slots:   
-        // BaseInterface
-        void initializePlugin();
-        void pluginsInitialized();
-        void slotAllCleared();
+    int createNewObject();
+    void discretizeLenght();
+    void findSelectVertex_fixed();
+    void findSelectVertex_draged();
+    void getPoints();
+    void solveShape();
+    void setNewPositions();
 
 
-        // MouseInterface
-        void slotMouseEvent(QMouseEvent* _event);
+public slots:
+    int addQuadrimesh();
+    void changeXYValue();
+    void pickVertex();
+    void changeFixPointValue();
+    void solveOptimazationInit();
+    void solveOptimazation();
+    void dragVertex();
+    void changeWind();
+
+
+private slots:
+    // BaseInterface
+    void initializePlugin();
+    void pluginsInitialized();
+    void slotAllCleared();
+
+
+    // MouseInterface
+    void slotMouseEvent(QMouseEvent* _event);
 
 
 
-   signals:
-        //BaseInterface
-        void updatedObject(int _id, const UpdateType& _type);
+signals:
+    //BaseInterface
+    void updatedObject(int _id, const UpdateType& _type);
 
-        //LoggingInterface
-        void log(Logtype _type, QString _message);
-        void log(QString _message);
+    //LoggingInterface
+    void log(Logtype _type, QString _message);
+    void log(QString _message);
 
-        //PickingInterface
-        void addPickMode( const std::string& _mode);
+    //PickingInterface
+    void addPickMode( const std::string& _mode);
 
-        // ToolboxInterface
-        void addToolbox( QString _name  , QWidget* _widget, QIcon* _icon );
+    // ToolboxInterface
+    void addToolbox( QString _name  , QWidget* _widget, QIcon* _icon );
 
-        // LoadSaveInterface
-        void addEmptyObject( DataType _type, int& _id);
-        void save(int _id, QString _filename);
+    // LoadSaveInterface
+    void addEmptyObject( DataType _type, int& _id);
+    void save(int _id, QString _filename);
 
 };
 

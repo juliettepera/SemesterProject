@@ -57,7 +57,6 @@ private:
     int m_vertices;
     int m_edges;
     int m_faces;
-    int m_nbL;
     bool m_pickMode;
     int m_dragMode;
     int m_dragedVertex;
@@ -66,6 +65,7 @@ private:
     QPoint m_newPos;
     int m_windIntensity;
     ShapeOp::Vector3 m_windDirection;
+    double m_masse;
 
     QSpinBox* sizeXSpin;
     QSpinBox* sizeYSpin;
@@ -75,11 +75,9 @@ private:
     QPushButton* pickButton;
     QPushButton* solveButton;
     QPushButton* dragButton;
-    QSlider* windSlider;
-    QDoubleSpinBox* windXSpin;
-    QDoubleSpinBox* windYSpin;
-    QDoubleSpinBox* windZSpin;
-
+    QSlider* windIntensitySlider;
+    QSlider* windZSlider;
+    QDial* windXYDial;
 
 public:
     // BaseInterface

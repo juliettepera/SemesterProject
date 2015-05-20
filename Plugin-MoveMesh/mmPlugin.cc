@@ -17,7 +17,9 @@ void mmPlugin::initializePlugin()
     m_edges = (m_sizeX-1)*m_sizeY + (m_sizeY-1)*m_sizeX;
     m_faces = (m_sizeX - 1)*(m_sizeY - 1);
     m_masse = 1.0;
+    m_length = 1.0;
     m_EdgesCons.clear();
+    m_VectorEdge.clear();
     m_LaplaceCons.clear();
     m_MV.resize(3,m_vertices);
     m_MV.setZero();
@@ -78,6 +80,20 @@ void mmPlugin::initializePlugin()
     windIntensitySlider->setMaximum(10);
     windIntensitySlider->setDisabled(true);
 
+    windXSlider = new QSlider(toolBox);
+    windXSlider->setOrientation(Qt::Vertical);
+    windXSlider->setMinimum(-10);
+    windXSlider->setValue(0);
+    windXSlider->setMaximum(10);
+    windXSlider->setDisabled(true);
+
+    windYSlider = new QSlider(toolBox);
+    windYSlider->setOrientation(Qt::Vertical);
+    windYSlider->setMinimum(-10);
+    windYSlider->setValue(0);
+    windYSlider->setMaximum(10);
+    windYSlider->setDisabled(true);
+
     windZSlider = new QSlider(toolBox);
     windZSlider->setOrientation(Qt::Vertical);
     windZSlider->setMinimum(-10);
@@ -85,19 +101,12 @@ void mmPlugin::initializePlugin()
     windZSlider->setMaximum(10);
     windZSlider->setDisabled(true);
 
-    windXYDial = new QDial(toolBox);
-    windXYDial->setMinimum(0);
-    windXYDial->setValue(0);
-    windXYDial->setMaximum(360);
-    windXYDial->setDisabled(true);
-
     QGridLayout* layout = new QGridLayout(toolBox);
 
     QLabel* labelX = new QLabel("Width");
     QLabel* labelY = new QLabel("Height");
     QLabel* labelD = new QLabel("Discretization #");
     QLabel* labelF = new QLabel("Fix point #");
-    QLabel* labelWD = new QLabel("Wind direction");
     QLabel* labelWI = new QLabel("Wind Intensity");
     QLabel* labelWX = new QLabel("X");
     QLabel* labelWY = new QLabel("Y");
@@ -119,12 +128,12 @@ void mmPlugin::initializePlugin()
 
     layout->addWidget( solveButton,   5,1,1,2);
 
-    layout->addWidget( labelWD,6,1,1,2);
-    //layout->addWidget( labelWZ,7,1);
-    layout->addWidget( windZSlider,7,1,3,1);
-    //layout->addWidget( labelWX,   7,3);
-    //layout->addWidget( labelWY,   8,3);
-    layout->addWidget( windXYDial, 7,2,2,2);
+    layout->addWidget( labelWX,6,1);
+    layout->addWidget( windXSlider,7,1,3,1);
+    layout->addWidget( labelWY, 6,2);
+    layout->addWidget( windYSlider,7,2,3,1);
+    layout->addWidget( labelWZ,6,3);
+    layout->addWidget( windZSlider,7,3,3,1);
     layout->addWidget( labelWI,6,4,1,2);
     layout->addWidget( windIntensitySlider,7,4,1,2);
 
@@ -139,8 +148,9 @@ void mmPlugin::initializePlugin()
     connect( pickButton, SIGNAL(clicked()), this, SLOT(pickVertex()));
     connect( dragButton, SIGNAL(clicked()), this, SLOT(dragVertex()));
     connect( solveButton, SIGNAL(clicked()), this, SLOT(solveOptimazation()));
+    connect( windXSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
+    connect( windYSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
     connect( windZSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
-    connect( windXYDial, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
     connect( windIntensitySlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
 
     emit addToolbox( tr("MoveMesh") , toolBox , toolIcon );
@@ -163,6 +173,7 @@ void mmPlugin::slotAllCleared()
     /*
     m_EdgesCons.clear();
     m_LaplaceCons.clear();
+    m_VectorEdge.clear();
     m_MV.resize(3,m_vertices);
     m_MV.setZero();
     m_list_vertex.reset();
@@ -184,6 +195,7 @@ void mmPlugin::slotAllCleared()
     m_edges = (m_sizeX-1)*m_sizeY + (m_sizeY-1)*m_sizeX;
     m_faces = (m_sizeX - 1)*(m_sizeY - 1);
     m_masse = 1.0;
+    m_length = 1.0;
 
     m_FixPoint = 4;
     m_discretize = 0;
@@ -201,8 +213,9 @@ void mmPlugin::slotAllCleared()
     fixPointSpin->setValue(4);
     discretizeSpin->setValue(0);
     windIntensitySlider->setValue(0);
+    windXSlider->setValue(0);
+    windYSlider->setValue(0);
     windZSlider->setValue(0);
-    windXYDial->setValue(0);
     loadButton->setEnabled(true);
     sizeXSpin->setEnabled(true);
     sizeYSpin->setEnabled(true);
@@ -213,9 +226,9 @@ void mmPlugin::slotAllCleared()
     solveButton->setDisabled(true);
     dragButton->setDisabled(true);
     windIntensitySlider->setDisabled(true);
+    windXSlider->setDisabled(true);
+    windYSlider->setDisabled(true);
     windZSlider->setDisabled(true);
-    windXYDial->setDisabled(true);
-
 }
 
 //**********************************************************************************************
@@ -251,8 +264,6 @@ int mmPlugin::createNewObject()
 
 int mmPlugin::addQuadrimesh()
 {
-    std::cout << "addQuadrimesh" << std::endl;
-
     int newObject = createNewObject();
 
     PolyMeshObject* object;
@@ -296,6 +307,9 @@ int mmPlugin::addQuadrimesh()
             }
         }
 
+        PolyMesh::EdgeIter e_it = m_PickedMesh->edges_begin();
+        m_length = m_PickedMesh->calc_edge_length(*e_it);
+
         m_PickedMesh->update_normals();
 
         m_IdObject = newObject;
@@ -324,8 +338,6 @@ int mmPlugin::addQuadrimesh()
 
 void mmPlugin::discretizeLenght()
 {
-    std::cout << "discretizeLength" << std::endl;
-
     if( m_discretize != 0 )
     {
         discretizeSpin->setDisabled(true);
@@ -482,6 +494,9 @@ void mmPlugin::discretizeLenght()
 
             m_masse = double(m_sizeX*m_sizeY)/double(m_vertices);
 
+            e_it = m_PickedMesh->edges_begin();
+            m_length = m_PickedMesh->calc_edge_length(*e_it);
+
             m_IdObject = newObject;
 
             save(m_IdObject,"/Users/Juju/Documents/project/files/QuadmeshDiscretized.ply");
@@ -561,7 +576,7 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             {
                 if( m_dragedVertex == m_idFixed[i] )
                 {
-                    m_posFixed[i] = hitPoint;
+                    m_posFixed.at(i) = hitPoint;
                 }
             }
 
@@ -569,6 +584,7 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             m_dragedVertex = -1;
 
             emit updatedObject(m_IdObject, UPDATE_GEOMETRY);
+            solveOptimazation();
         }
     }
 
@@ -666,7 +682,6 @@ void mmPlugin::findSelectVertex_draged()
             }
         }
     }
-    m_dragedVertex = -1;
 }
 
 //**********************************************************************************************
@@ -674,8 +689,6 @@ void mmPlugin::findSelectVertex_draged()
 //**********************************************************************************************
 void mmPlugin::solveOptimazationInit()
 {
-    std::cout << "solveOptimaizationInit" << std::endl;
-
     getPoints();
     solveShape();
     setNewPositions();
@@ -683,14 +696,13 @@ void mmPlugin::solveOptimazationInit()
     solveButton->setEnabled(true);
     dragButton->setEnabled(true);
     windIntensitySlider->setEnabled(true);
+    windXSlider->setEnabled(true);
+    windYSlider->setEnabled(true);
     windZSlider->setEnabled(true);
-    windXYDial->setEnabled(true);
 }
 
 void mmPlugin::solveOptimazation()
 {
-    std::cout << "solveOptimization" << std::endl;
-
     m_MV.resize(3,m_vertices);
     m_MV.setZero();
 
@@ -716,17 +728,18 @@ void mmPlugin::solveOptimazation()
 
 void mmPlugin::getPoints()
 {
-    std::cout << "getPoints" << std::endl;
-
     m_MV.resize(3,m_vertices);
     m_MV.setZero();
 
     m_EdgesCons.clear();
+    m_VectorEdge.clear();
 
     // GET ALL THE VERTICES
     PolyMesh::VertexIter v_it;
     PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
     OpenMesh::Vec3d p;
+
+    PolyMesh::HalfedgeHandle he_h;
 
     int nbV = 0;
     for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
@@ -737,12 +750,8 @@ void mmPlugin::getPoints()
         m_MV(1,nbV) = p[1];
         m_MV(2,nbV) = p[2];
         nbV++;
-    }
 
-    std::cout << "vertices: " << std::endl;
-    for( int i = 0 ; i < m_MV.cols() ; i++ )
-    {
-        std::cout << m_MV(0,i) << " " << m_MV(1,i) << " " << m_MV(2,i) << std::endl;
+        m_VectorEdge.push_back(he_h);
     }
 
     // GET ALL THE EDGES
@@ -767,6 +776,7 @@ void mmPlugin::getPoints()
         index.push_back( vh1.idx() );
         m_EdgesCons.push_back(index);
 
+        m_VectorEdge.at(vh0.idx()) = he_01;
         nbedges++;
     }
 
@@ -884,20 +894,18 @@ void mmPlugin::getPoints()
         }
 
     }
-    std::cout << "Laplacian :" << std::endl;
+    /*std::cout << "Laplacian :" << std::endl;
     for(int i = 0; i<m_LaplaceCons.size() ; i++)
     {
         std::cout << m_LaplaceCons.at(i).at(0) << " " << m_LaplaceCons.at(i).at(1) << " " << m_LaplaceCons.at(i).at(2) << std::endl;
-    }
+    }*/
 }
 
 void mmPlugin::solveShape()
 {
-    std::cout << "solveShape" << std::endl;
-
     ShapeOp::Solver s;
     s.setPoints(m_MV);
-    ShapeOp::Scalar edgelength_weight = 200;
+    ShapeOp::Scalar edgelength_weight = 1000;
     ShapeOp::Scalar closeness_weight = 200;
     ShapeOp::Scalar laplacian_weight = 200;
 
@@ -909,6 +917,7 @@ void mmPlugin::solveShape()
         auto closs_contraint = std::make_shared<ShapeOp::ClosenessConstraint>(id_vector, closeness_weight, s.getPoints());
 
         Vector pos1 = m_posFixed[i];
+
         ShapeOp::Vector3 pos2;
         pos2(0) = pos1[0];
         pos2(1) = pos1[1];
@@ -926,21 +935,49 @@ void mmPlugin::solveShape()
         id_vector.push_back(m_EdgesCons.at(i).at(0));
         id_vector.push_back(m_EdgesCons.at(i).at(1));
         auto edge_constraint = std::make_shared<ShapeOp::EdgeStrainConstraint>(id_vector,edgelength_weight,s.getPoints());
+        edge_constraint->setEdgeLength(m_length);
         s.addConstraint(edge_constraint);
     }
 
     //add gravity force
     {
-        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.5));
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.05));
         s.addForces(gravity_force);
     }
 
     //add wind force
-    for( int i = 0 ; i < m_MV.cols() ; i++)
+    /*for( int i = 0 ; i < m_MV.cols() ; i++)
     {
         auto wind_force = std::make_shared<ShapeOp::VertexForce>(m_windDirection,i);
         s.addForces(wind_force);
+    }*/
+
+    for( int i = 0 ; i < m_VectorEdge.size() ; i++)
+    {
+        double NWind = sqrt( m_windDirection[0]*m_windDirection[0] + m_windDirection[1]*m_windDirection[1] + m_windDirection[2]*m_windDirection[2]);
+
+        double sinT = 1;
+
+        if( NWind != 0 )
+        {
+            PolyMesh::Normal EdgeVector = m_PickedMesh->calc_edge_vector(m_VectorEdge.at(i));
+
+            ShapeOp::Vector3 cross;
+            cross[0] = EdgeVector[1]*m_windDirection[2] - EdgeVector[2]*m_windDirection[1];
+            cross[1] = EdgeVector[2]*m_windDirection[0] - EdgeVector[0]*m_windDirection[2];
+            cross[2] = EdgeVector[0]*m_windDirection[1] - EdgeVector[1]*m_windDirection[0];
+
+            double Ncross = sqrt( cross[0]*cross[0] + cross[1]*cross[1] + cross[1]*cross[1]);
+            double NEdgeVector = sqrt( EdgeVector[0]*EdgeVector[0] + EdgeVector[1]*EdgeVector[1] + EdgeVector[2]*EdgeVector[2]);
+
+            sinT = Ncross/( NEdgeVector*NWind );
+
+            std::cout << "Ncross: " << Ncross << " Nedge: " << NEdgeVector << " NWind: " << NWind << " sinT: " << sinT << std::endl;
+        }
+        auto wind_force = std::make_shared<ShapeOp::VertexForce>(sinT*m_windDirection,i);
+        s.addForces(wind_force);
     }
+
 
 
     // add laplacian constraint
@@ -971,17 +1008,14 @@ void mmPlugin::solveShape()
         }
     }
 
-    std::cout << "masse / vertex : " << m_masse << std::endl;
     s.initialize(false,m_masse);
-    s.solve(500);
+    s.solve(50);
     m_MV = s.getPoints();
 
 }
 
 void mmPlugin::setNewPositions()
 {
-    std::cout << "setNewPositions" << std::endl;
-
     PolyMesh::VertexIter v_it;
     PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
     OpenMesh::Vec3d NewPoint;
@@ -1008,8 +1042,6 @@ void mmPlugin::setNewPositions()
 //**********************************************************************************************
 void mmPlugin::dragVertex()
 {
-    std::cout << "dragVertex" << std::endl;
-
     PluginFunctions::actionMode(Viewer::PickingMode);
     PluginFunctions::pickMode("DragVertex");
 }
@@ -1019,16 +1051,15 @@ void mmPlugin::dragVertex()
 //**********************************************************************************************
 void mmPlugin::changeWind()
 {
-    std::cout << "changeWind" << std::endl;
+    m_windIntensity = windIntensitySlider->value()/10.0;
 
-    double I = windIntensitySlider->value()/10.0;
-
-    double PI = 3.141592653589;
-    double x = cos( (windXYDial->value() - 180) / (180/PI) );
-    double y = sin( (windXYDial->value() - 180) / (180/PI) );
+    double x = windXSlider->value();
+    double y = windYSlider->value();
     double z = windZSlider->value();
+
     m_windDirection = ShapeOp::Vector3(x,y,z);
-    m_windDirection = I*m_windDirection;
+
+    m_windDirection = m_windIntensity*m_windDirection;
 
     std::cout << "wind: " << m_windDirection << std::endl;
 }

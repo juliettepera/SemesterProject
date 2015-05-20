@@ -20,6 +20,7 @@
 #include <Force.h>
 
 #include <cmath>
+#include <array>
 
 class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
         LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface, RPCInterface
@@ -45,6 +46,7 @@ private:
     ShapeOp::Matrix3X m_MV;
 
     std::vector< std::vector<int> > m_EdgesCons;
+    std::vector<PolyMesh::HalfedgeHandle> m_VectorEdge;
     std::vector< std::vector<int> > m_LaplaceCons;
 
     ShapeOp::MatrixXX m_ML;
@@ -63,9 +65,10 @@ private:
     PolyMesh::VertexIter m_Draged;
     QPoint m_oldPos;
     QPoint m_newPos;
-    int m_windIntensity;
+    double m_windIntensity;
     ShapeOp::Vector3 m_windDirection;
     double m_masse;
+    double m_length;
 
     QSpinBox* sizeXSpin;
     QSpinBox* sizeYSpin;
@@ -76,8 +79,9 @@ private:
     QPushButton* solveButton;
     QPushButton* dragButton;
     QSlider* windIntensitySlider;
+    QSlider* windXSlider;
+    QSlider* windYSlider;
     QSlider* windZSlider;
-    QDial* windXYDial;
 
 public:
     // BaseInterface
@@ -102,7 +106,6 @@ public slots:
     void solveOptimazation();
     void dragVertex();
     void changeWind();
-
 
 private slots:
     // BaseInterface

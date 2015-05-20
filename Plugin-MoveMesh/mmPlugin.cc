@@ -29,6 +29,9 @@ void mmPlugin::initializePlugin()
     m_windIntensity = 0;
     m_windDirection = ShapeOp::Vector3(0,0,0);
 
+    m_IdArrow = -1;
+
+
     //m_Draged.clear();
     //m_oldPos = QPoint(0,0,0);
     //m_newPos = QPoint(0,0,0);
@@ -52,7 +55,7 @@ void mmPlugin::initializePlugin()
 
     discretizeSpin = new QSpinBox(toolBox);
     discretizeSpin->setMinimum(0);
-    discretizeSpin->setMaximum(4);
+    discretizeSpin->setMaximum(20);
     discretizeSpin->setValue(0);
 
     loadButton = new QPushButton("&Load",toolBox);
@@ -101,6 +104,10 @@ void mmPlugin::initializePlugin()
     windZSlider->setMaximum(10);
     windZSlider->setDisabled(true);
 
+    arrowBox = new QCheckBox(toolBox);
+    arrowBox->setChecked(false);
+    arrowBox->setCheckable(false);
+
     QGridLayout* layout = new QGridLayout(toolBox);
 
     QLabel* labelX = new QLabel("Width");
@@ -135,7 +142,8 @@ void mmPlugin::initializePlugin()
     layout->addWidget( labelWZ,6,3);
     layout->addWidget( windZSlider,7,3,3,1);
     layout->addWidget( labelWI,6,4,1,2);
-    layout->addWidget( windIntensitySlider,7,4,1,2);
+    layout->addWidget( windIntensitySlider,7,3,1,2);
+    layout->addWidget( arrowBox,8,1);
 
     layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
 
@@ -152,6 +160,7 @@ void mmPlugin::initializePlugin()
     connect( windYSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
     connect( windZSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
     connect( windIntensitySlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
+    connect( arrowBox, SIGNAL(toggled(bool)), this, SLOT(displayArrow()));
 
     emit addToolbox( tr("MoveMesh") , toolBox , toolIcon );
 }
@@ -220,6 +229,7 @@ void mmPlugin::slotAllCleared()
     sizeXSpin->setEnabled(true);
     sizeYSpin->setEnabled(true);
     discretizeSpin->setEnabled(true);
+    arrowBox->setChecked(false);
 
     fixPointSpin->setDisabled(true);
     pickButton->setDisabled(true);
@@ -229,6 +239,7 @@ void mmPlugin::slotAllCleared()
     windXSlider->setDisabled(true);
     windYSlider->setDisabled(true);
     windZSlider->setDisabled(true);
+    arrowBox->setCheckable(false);
 }
 
 //**********************************************************************************************
@@ -699,6 +710,7 @@ void mmPlugin::solveOptimazationInit()
     windXSlider->setEnabled(true);
     windYSlider->setEnabled(true);
     windZSlider->setEnabled(true);
+    arrowBox->setCheckable(true);
 }
 
 void mmPlugin::solveOptimazation()
@@ -941,7 +953,7 @@ void mmPlugin::solveShape()
 
     //add gravity force
     {
-        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.05));
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.5));
         s.addForces(gravity_force);
     }
 
@@ -972,7 +984,7 @@ void mmPlugin::solveShape()
 
             sinT = Ncross/( NEdgeVector*NWind );
 
-            std::cout << "Ncross: " << Ncross << " Nedge: " << NEdgeVector << " NWind: " << NWind << " sinT: " << sinT << std::endl;
+            //std::cout << "Ncross: " << Ncross << " Nedge: " << NEdgeVector << " NWind: " << NWind << " sinT: " << sinT << std::endl;
         }
         auto wind_force = std::make_shared<ShapeOp::VertexForce>(sinT*m_windDirection,i);
         s.addForces(wind_force);
@@ -1061,11 +1073,158 @@ void mmPlugin::changeWind()
 
     m_windDirection = m_windIntensity*m_windDirection;
 
-    std::cout << "wind: " << m_windDirection << std::endl;
+    //std::cout << "wind: " << m_windDirection << std::endl;
 }
 
+void mmPlugin::displayArrow()
+{
+    if( arrowBox->isChecked() == true )
+    {
+        createArrow();
+    }
+    else if( arrowBox->isChecked() == false )
+    {
+
+    }
+}
+
+int mmPlugin::createArrow()
+{
+    int newObject = createNewObject();
+
+    PolyMeshObject* object;
+    if ( !PluginFunctions::getObject(newObject,object) )
+    {
+        emit log(LOGERR,"Unable to create new Object");
+        return -1;
+    }
+    else
+    {
+        object->setName( "Arrow " + QString::number(newObject) );
+
+        m_Arrow =  object->mesh();
+
+        m_Arrow->clear();
+
+        // add the new vertices
+        std::vector<PolyMesh::VertexHandle> vhandle;
+        std::vector<PolyMesh::VertexHandle> fphandles;
+        PolyMesh::FaceHandle fh;
+
+        vhandle.resize(14);
+        vhandle[0] = m_Arrow->add_vertex(PolyMesh::Point(0,1,0));
+        vhandle[1] = m_Arrow->add_vertex(PolyMesh::Point(0,2,0));
+        vhandle[2] = m_Arrow->add_vertex(PolyMesh::Point(5,2,0));
+        vhandle[3] = m_Arrow->add_vertex(PolyMesh::Point(5,3,0));
+        vhandle[4] = m_Arrow->add_vertex(PolyMesh::Point(7,1.5,0));
+        vhandle[5] = m_Arrow->add_vertex(PolyMesh::Point(5,0,0));
+        vhandle[6] = m_Arrow->add_vertex(PolyMesh::Point(5,1,0));
+        vhandle[7] = m_Arrow->add_vertex(PolyMesh::Point(0,1,1));
+        vhandle[8] = m_Arrow->add_vertex(PolyMesh::Point(0,2,1));
+        vhandle[9] = m_Arrow->add_vertex(PolyMesh::Point(5,2,1));
+        vhandle[10] = m_Arrow->add_vertex(PolyMesh::Point(5,3,1));
+        vhandle[11] = m_Arrow->add_vertex(PolyMesh::Point(7,1.5,1));
+        vhandle[12] = m_Arrow->add_vertex(PolyMesh::Point(5,0,1));
+        vhandle[13] = m_Arrow->add_vertex(PolyMesh::Point(5,1,1));
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[0]);
+        fphandles.push_back(vhandle[1]);
+        fphandles.push_back(vhandle[2]);
+        fphandles.push_back(vhandle[3]);
+        fphandles.push_back(vhandle[4]);
+        fphandles.push_back(vhandle[5]);
+        fphandles.push_back(vhandle[6]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[7]);
+        fphandles.push_back(vhandle[8]);
+        fphandles.push_back(vhandle[9]);
+        fphandles.push_back(vhandle[10]);
+        fphandles.push_back(vhandle[11]);
+        fphandles.push_back(vhandle[12]);
+        fphandles.push_back(vhandle[13]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
 
 
+
+        /*fphandles.clear();
+        fphandles.push_back(vhandle[1]);
+        fphandles.push_back(vhandle[8]);
+        fphandles.push_back(vhandle[9]);
+        fphandles.push_back(vhandle[2]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[9]);
+        fphandles.push_back(vhandle[2]);
+        fphandles.push_back(vhandle[3]);
+        fphandles.push_back(vhandle[10]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[3]);
+        fphandles.push_back(vhandle[10]);
+        fphandles.push_back(vhandle[11]);
+        fphandles.push_back(vhandle[4]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[12]);
+        fphandles.push_back(vhandle[5]);
+        fphandles.push_back(vhandle[4]);
+        fphandles.push_back(vhandle[11]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[12]);
+        fphandles.push_back(vhandle[5]);
+        fphandles.push_back(vhandle[6]);
+        fphandles.push_back(vhandle[13]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[6]);
+        fphandles.push_back(vhandle[13]);
+        fphandles.push_back(vhandle[7]);
+        fphandles.push_back(vhandle[0]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+                fphandles.clear();
+        fphandles.push_back(vhandle[0]);
+        fphandles.push_back(vhandle[1]);
+        fphandles.push_back(vhandle[8]);
+        fphandles.push_back(vhandle[7]);
+        fh = m_Arrow->add_face(fphandles);
+        std::cout << "face " << fh << std::endl;
+
+*/
+
+
+        m_Arrow->update_normals();
+
+        m_IdArrow = newObject;
+        save(m_IdObject,"/Users/Juju/Documents/project/files/Arrow.ply");
+
+        //setObjectDrawMode(ACG::SceneGraph::DrawModes::SOLID_SMOOTH_SHADED,m_IdArrow);
+
+        emit updatedObject(m_IdArrow,UPDATE_ALL);
+
+        PluginFunctions::viewAll();
+
+        return newObject;
+    }
+    return -1;
+}
 
 //**********************************************************************************************
 Q_EXPORT_PLUGIN2( movemeshplugin , mmPlugin );

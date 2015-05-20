@@ -70,6 +70,9 @@ private:
     double m_masse;
     double m_length;
 
+    PolyMesh* m_Arrow;
+    int m_IdArrow;
+
     QSpinBox* sizeXSpin;
     QSpinBox* sizeYSpin;
     QSpinBox* discretizeSpin;
@@ -82,6 +85,7 @@ private:
     QSlider* windXSlider;
     QSlider* windYSlider;
     QSlider* windZSlider;
+    QCheckBox* arrowBox;
 
 public:
     // BaseInterface
@@ -96,6 +100,8 @@ public:
     void solveShape();
     void setNewPositions();
 
+    int createArrow();
+
 
 public slots:
     int addQuadrimesh();
@@ -106,6 +112,7 @@ public slots:
     void solveOptimazation();
     void dragVertex();
     void changeWind();
+    void displayArrow();
 
 private slots:
     // BaseInterface

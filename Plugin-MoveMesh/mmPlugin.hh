@@ -13,6 +13,7 @@
 #include <ObjectTypes/Coordsys/CoordinateSystemNode.hh>
 
 #include <ObjectTypes/PolyMesh/PolyMesh.hh>
+#include <ObjectTypes/TriangleMesh/TriangleMesh.hh>
 
 // ShapeOp Libraries
 #include <Constraint.h>
@@ -21,6 +22,10 @@
 
 #include <cmath>
 #include <array>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327950288
+#endif
 
 class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
         LoggingInterface, LoadSaveInterface, MouseInterface, PickingInterface, RPCInterface
@@ -37,42 +42,77 @@ class mmPlugin : public QObject, BaseInterface, ToolboxInterface, KeyInterface,
 
 private:
 
+//****CREATION OF FILE - DISCRETIZATION****
+    // file of the created mesh
     PolyMesh* m_PickedMesh;
+    // list of vertex handle in the mesh
     std::vector<PolyMesh::VertexHandle> m_vh0;
+    // list of vertex handle for the face -> not sure need it at attribute
     std::vector<PolyMesh::VertexHandle> m_fphandles;
-    std::vector<int> m_idFixed;
-    std::vector<Vector> m_posFixed;
-    OpenMesh::Vec3d m_hitPoint;
-    ShapeOp::Matrix3X m_MV;
-
-    std::vector< std::vector<int> > m_EdgesCons;
-    std::vector<PolyMesh::HalfedgeHandle> m_VectorEdge;
-    std::vector< std::vector<int> > m_LaplaceCons;
-
-    ShapeOp::MatrixXX m_ML;
-    OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
+    // object id of the created mesh
     int m_IdObject;
-    int m_FixPoint;
-    int m_discretize;
+    // size of the created mesh
     int m_sizeX;
     int m_sizeY;
+    // parameters of the created mesh, updated after discretization
     int m_vertices;
     int m_edges;
     int m_faces;
-    bool m_pickMode;
-    int m_dragMode;
-    int m_dragedVertex;
-    PolyMesh::VertexIter m_Draged;
+    // masse of each vertex depending on the discretization
+    double m_masse;
+    // length of each edges depending on the discretization
+    double m_length;
+    // number of the in-between vertices added when discretizing
+    int m_discretize;
+    // ordered list of vertex of each halfedge to reconstruct the face after discretization
+    OpenMesh::HPropHandleT<std::vector<PolyMesh::VertexHandle>> m_list_vertex;
+
+//****SELECTION - FIX POINT - DRAGGED POINT****
+    // list of ids of fixed vertex
+    std::vector<int> m_idFixed;
+    // list of position of fixed vertex
+    std::vector<Vector> m_posFixed;
+    // list of id of sphere for fixed vertex
+    std::vector<int> m_idSphere;
+    // position of the hit point when selecting a vertex
+    OpenMesh::Vec3d m_hitPoint;
+    // handles the old nd new position when selecting a vertex
     QPoint m_oldPos;
     QPoint m_newPos;
+    // number of fixed points
+    int m_FixPoint;
+    // boolean for picking mode
+    bool m_pickMode;
+    // handles the dragging mode
+    int m_dragMode;
+    // index of the draged vertex
+    int m_dragedVertex;
+    // vertex iter of the draged vertex
+    PolyMesh::VertexIter m_Draged;
+
+//****OPTIMIZATION****
+    // matrix of point to be passed to the solver
+    ShapeOp::Matrix3X m_MV;
+    // list of the two vertex belonging to each edges
+    std::vector< std::vector<int> > m_EdgesCons;
+    // list of halfedge handle of each edges to compute the vector
+    std::vector<PolyMesh::HalfedgeHandle> m_VectorEdge;
+    // list of the 3 vertex for each laplacian constraint
+    std::vector< std::vector<int> > m_LaplaceCons;
+    // value of the wind intensity
     double m_windIntensity;
+    // vector of the wind direction
     ShapeOp::Vector3 m_windDirection;
-    double m_masse;
-    double m_length;
-
+    // file of the arrow mesh
     PolyMesh* m_Arrow;
+    // object id of the arrow mesh
     int m_IdArrow;
+    // vector representing the direction of the arrow
+    Vector m_DirArrow;
+    // transformation matrix of the arrow
+    ACG::Matrix4x4d m_matrix;
 
+//****INTERFACE****
     QSpinBox* sizeXSpin;
     QSpinBox* sizeYSpin;
     QSpinBox* discretizeSpin;
@@ -101,7 +141,7 @@ public:
     void setNewPositions();
 
     int createArrow();
-
+    void transformArrow(Vector Axe, double theta, Vector Translation);
 
 public slots:
     int addQuadrimesh();

@@ -6,6 +6,7 @@ void mmPlugin::initializePlugin()
     m_fphandles.clear();
     m_idFixed.clear();
     m_posFixed.clear();
+    m_idSphere.clear();
     m_hitPoint = OpenMesh::Vec3d(0,0,0);
     m_list_vertex.reset();
     m_IdObject = -1;
@@ -27,8 +28,7 @@ void mmPlugin::initializePlugin()
     m_dragMode = 0;
     m_dragedVertex = 0;
     m_windIntensity = 0;
-    m_windDirection = ShapeOp::Vector3(0,0,0);
-
+    m_windDirection = ShapeOp::Vector3(1,0,0);
     m_IdArrow = -1;
 
 
@@ -86,7 +86,7 @@ void mmPlugin::initializePlugin()
     windXSlider = new QSlider(toolBox);
     windXSlider->setOrientation(Qt::Vertical);
     windXSlider->setMinimum(-10);
-    windXSlider->setValue(0);
+    windXSlider->setValue(10);
     windXSlider->setMaximum(10);
     windXSlider->setDisabled(true);
 
@@ -135,15 +135,15 @@ void mmPlugin::initializePlugin()
 
     layout->addWidget( solveButton,   5,1,1,2);
 
-    layout->addWidget( labelWX,6,1);
-    layout->addWidget( windXSlider,7,1,3,1);
-    layout->addWidget( labelWY, 6,2);
-    layout->addWidget( windYSlider,7,2,3,1);
-    layout->addWidget( labelWZ,6,3);
-    layout->addWidget( windZSlider,7,3,3,1);
-    layout->addWidget( labelWI,6,4,1,2);
-    layout->addWidget( windIntensitySlider,7,3,1,2);
-    layout->addWidget( arrowBox,8,1);
+    layout->addWidget( labelWX,       6,2);
+    layout->addWidget( windXSlider,   7,2,3,1);
+    layout->addWidget( labelWY,       6,3);
+    layout->addWidget( windYSlider,   7,3,3,1);
+    layout->addWidget( labelWZ,       6,4);
+    layout->addWidget( windZSlider,   7,4,3,1);
+    layout->addWidget( labelWI,       6,4,1,2);
+    layout->addWidget( windIntensitySlider,7,4,1,2);
+    layout->addWidget( arrowBox,      6,1);
 
     layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
 
@@ -196,6 +196,7 @@ void mmPlugin::slotAllCleared()
     m_vh0.clear();
     m_fphandles.clear();
     m_idFixed.clear();
+    m_idSphere.clear();
     m_posFixed.clear();
     m_hitPoint = OpenMesh::Vec3d(0,0,0);
 
@@ -215,14 +216,14 @@ void mmPlugin::slotAllCleared()
     m_dragMode = 0;
     m_dragedVertex = 0;
     m_windIntensity = 0;
-    m_windDirection = ShapeOp::Vector3(0,1,0);
+    m_windDirection = ShapeOp::Vector3(1,0,0);
 
     sizeXSpin->setValue(5);
     sizeYSpin->setValue(5);
     fixPointSpin->setValue(4);
     discretizeSpin->setValue(0);
     windIntensitySlider->setValue(0);
-    windXSlider->setValue(0);
+    windXSlider->setValue(10);
     windYSlider->setValue(0);
     windZSlider->setValue(0);
     loadButton->setEnabled(true);
@@ -587,7 +588,20 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             {
                 if( m_dragedVertex == m_idFixed[i] )
                 {
+                    Vector v = hitPoint - m_posFixed.at(i);
+                    //std::cout << "old pos: " << m_posFixed[i][0] << " " << m_posFixed[i][1] << " " << m_posFixed[i][2] << " / new pos: " << hitPoint[0] << " " << hitPoint[1] << " " << hitPoint[2] << " / translation vector: " << v[0] << " " << v[1] << " " << v[2] << std::endl;
                     m_posFixed.at(i) = hitPoint;
+
+                    TriMesh* mesh;
+                    if( PluginFunctions::getMesh(m_idSphere[i],mesh) )
+                    {
+                        TriMesh::VertexIter v_it;
+                        for (v_it  = mesh->vertices_begin() ; v_it!=mesh->vertices_end(); ++v_it)
+                        {
+                            mesh->set_point(*v_it,mesh->point(*v_it) + v );
+                        }
+                    }
+                    emit updatedObject(m_idSphere[i], UPDATE_GEOMETRY);
                 }
             }
 
@@ -595,6 +609,7 @@ void mmPlugin::slotMouseEvent(QMouseEvent* _event)
             m_dragedVertex = -1;
 
             emit updatedObject(m_IdObject, UPDATE_GEOMETRY);
+
             solveOptimazation();
         }
     }
@@ -656,7 +671,7 @@ void mmPlugin::findSelectVertex_fixed()
                 m_idFixed.push_back((*v_it).idx());
                 Vector v(p[0],p[1],p[2]);
                 m_posFixed.push_back(v);
-                RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3);
+                m_idSphere.push_back( RPC::callFunctionValue<int>("primitivesgenerator","addSphere",v,0.3));
                 m_hitPoint = OpenMesh::Vec3d(-1,-1,-1);
             }
         }
@@ -1073,7 +1088,7 @@ void mmPlugin::changeWind()
 
     m_windDirection = m_windIntensity*m_windDirection;
 
-    //std::cout << "wind: " << m_windDirection << std::endl;
+    std::cout << "wind: " << m_windDirection << std::endl;
 }
 
 void mmPlugin::displayArrow()
@@ -1081,11 +1096,60 @@ void mmPlugin::displayArrow()
     if( arrowBox->isChecked() == true )
     {
         createArrow();
+
+        //transformArrow(Vector(0,1,0),M_PI/2.0,Vector(-2,-2,0));
     }
     else if( arrowBox->isChecked() == false )
     {
-
+        //emit LoadSaveInterface::deleteObject(m_IdArrow);
+        //PluginFunctions::viewAll();
     }
+}
+
+void mmPlugin::transformArrow(Vector Axe, double theta, Vector Translation)
+{
+    // normalize the wind direction and arrow direction
+    Vector Wind = m_windDirection/(sqrt(m_windDirection[0]*m_windDirection[0],m_windDirection[1]*m_windDirection[1],m_windDirection[2]*m_windDirection[2]));
+    Vector Arrow = m_DirArrow/(sqrt(m_DirArrow[0]*m_DirArrow[0],m_DirArrow[1]*m_DirArrow[1],m_DirArrow[2]*m_DirArrow[2]));
+
+    // compute the cosT and sinT
+    double cosT = Arrow[0]*Wind[0] + Arrow[1]*Wind[1] + Arrow[2]*Wind[2];
+
+    Vector cross;
+    cross[0] = Arrow[1]*Wind[2] - Arrow[2]*Wind[1];
+    cross[1] = Arrow[2]*Wind[0] - Arrow[0]*Wind[2];
+    cross[2] = Arrow[0]*Wind[1] - Arrow[1]*Wind[0];
+    double sinT = sqrt(cross[0]*cross[0],cross[1]*cross[1],cross[2]*cross[2]);
+
+    // matrix F
+
+    // matrix F inverse
+
+    // matrix Rotation
+
+    /*double cosT = cos(theta);
+    double sinT = sin(theta);
+
+    m_matrix(0,3) = Translation[0];
+    m_matrix(1,3) = Translation[1];
+    m_matrix(2,3) = Translation[2];
+    m_matrix(3,0) = 0;
+    m_matrix(3,1) = 0;
+    m_matrix(3,2) = 0;
+    m_matrix(3,3) = 1;
+
+    m_matrix(0,0) = Axe[0]*1 + Axe[1]*cosT + Axe[2]*cosT; m_matrix(0,1) = -Axe[2]*sinT;                         m_matrix(0,2) = Axe[1]*sinT;
+    m_matrix(1,0) = Axe[2]*sinT;                          m_matrix(1,1) = Axe[0]*cosT + Axe[1]*1 + Axe[2]*cosT; m_matrix(1,2) = -Axe[0]*sinT;
+    m_matrix(2,0) = -Axe[1]*sinT;                         m_matrix(2,1) = Axe[0]*sinT;                          m_matrix(2,2) = Axe[0]*cosT + Axe[1]*cosT + Axe[2]*1;
+
+*/
+    PolyMesh::VertexIter v_it;
+    for (v_it  = m_Arrow->vertices_begin() ; v_it!=m_Arrow->vertices_end(); ++v_it)
+    {
+        m_Arrow->set_point(*v_it,m_matrix.transform_point(m_Arrow->point(*v_it)) );
+    }
+
+    emit updatedObject(m_IdArrow, UPDATE_GEOMETRY);
 }
 
 int mmPlugin::createArrow()
@@ -1111,109 +1175,117 @@ int mmPlugin::createArrow()
         std::vector<PolyMesh::VertexHandle> fphandles;
         PolyMesh::FaceHandle fh;
 
-        vhandle.resize(14);
-        vhandle[0] = m_Arrow->add_vertex(PolyMesh::Point(0,1,0));
-        vhandle[1] = m_Arrow->add_vertex(PolyMesh::Point(0,2,0));
-        vhandle[2] = m_Arrow->add_vertex(PolyMesh::Point(5,2,0));
-        vhandle[3] = m_Arrow->add_vertex(PolyMesh::Point(5,3,0));
-        vhandle[4] = m_Arrow->add_vertex(PolyMesh::Point(7,1.5,0));
-        vhandle[5] = m_Arrow->add_vertex(PolyMesh::Point(5,0,0));
-        vhandle[6] = m_Arrow->add_vertex(PolyMesh::Point(5,1,0));
-        vhandle[7] = m_Arrow->add_vertex(PolyMesh::Point(0,1,1));
-        vhandle[8] = m_Arrow->add_vertex(PolyMesh::Point(0,2,1));
-        vhandle[9] = m_Arrow->add_vertex(PolyMesh::Point(5,2,1));
-        vhandle[10] = m_Arrow->add_vertex(PolyMesh::Point(5,3,1));
-        vhandle[11] = m_Arrow->add_vertex(PolyMesh::Point(7,1.5,1));
-        vhandle[12] = m_Arrow->add_vertex(PolyMesh::Point(5,0,1));
-        vhandle[13] = m_Arrow->add_vertex(PolyMesh::Point(5,1,1));
+        // Add 5 vertices
+        vhandle.resize(13);
 
+        vhandle[0] = m_Arrow->add_vertex(PolyMesh::Point( 0.5, -0.5, 0.0));
+        vhandle[1] = m_Arrow->add_vertex(PolyMesh::Point( 0.5,  0.5, 0.0));
+        vhandle[2] = m_Arrow->add_vertex(PolyMesh::Point(-0.5,  0.5, 0.0));
+        vhandle[3] = m_Arrow->add_vertex(PolyMesh::Point(-0.5, -0.5, 0.0));
+        vhandle[4] = m_Arrow->add_vertex(PolyMesh::Point(0.0, 0.0, 0.5));
+        vhandle[5] = m_Arrow->add_vertex(PolyMesh::Point( 0.25, -0.25, 0.0));
+        vhandle[6] = m_Arrow->add_vertex(PolyMesh::Point( 0.25,  0.25, 0.0));
+        vhandle[7] = m_Arrow->add_vertex(PolyMesh::Point(-0.25,  0.25, 0.0));
+        vhandle[8] = m_Arrow->add_vertex(PolyMesh::Point(-0.25, -0.25, 0.0));
+        vhandle[9] = m_Arrow->add_vertex(PolyMesh::Point( 0.25, -0.25, -1));
+        vhandle[10] = m_Arrow->add_vertex(PolyMesh::Point( 0.25,  0.25,-1));
+        vhandle[11] = m_Arrow->add_vertex(PolyMesh::Point(-0.25,  0.25,-1));
+        vhandle[12] = m_Arrow->add_vertex(PolyMesh::Point(-0.25, -0.25,-1));
+
+
+        // Add 6 faces
         fphandles.clear();
+        fphandles.push_back(vhandle[2]);
+        fphandles.push_back(vhandle[1]);
         fphandles.push_back(vhandle[0]);
-        fphandles.push_back(vhandle[1]);
-        fphandles.push_back(vhandle[2]);
-        fphandles.push_back(vhandle[3]);
-        fphandles.push_back(vhandle[4]);
-        fphandles.push_back(vhandle[5]);
-        fphandles.push_back(vhandle[6]);
         fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
-
-        fphandles.clear();
-        fphandles.push_back(vhandle[7]);
-        fphandles.push_back(vhandle[8]);
-        fphandles.push_back(vhandle[9]);
-        fphandles.push_back(vhandle[10]);
-        fphandles.push_back(vhandle[11]);
-        fphandles.push_back(vhandle[12]);
-        fphandles.push_back(vhandle[13]);
-        fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
-
-
-
-        /*fphandles.clear();
-        fphandles.push_back(vhandle[1]);
-        fphandles.push_back(vhandle[8]);
-        fphandles.push_back(vhandle[9]);
-        fphandles.push_back(vhandle[2]);
-        fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
-
-        fphandles.clear();
-        fphandles.push_back(vhandle[9]);
-        fphandles.push_back(vhandle[2]);
-        fphandles.push_back(vhandle[3]);
-        fphandles.push_back(vhandle[10]);
-        fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
 
         fphandles.clear();
         fphandles.push_back(vhandle[3]);
-        fphandles.push_back(vhandle[10]);
-        fphandles.push_back(vhandle[11]);
-        fphandles.push_back(vhandle[4]);
-        fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
-
-        fphandles.clear();
-        fphandles.push_back(vhandle[12]);
-        fphandles.push_back(vhandle[5]);
-        fphandles.push_back(vhandle[4]);
-        fphandles.push_back(vhandle[11]);
-        fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
-
-        fphandles.clear();
-        fphandles.push_back(vhandle[12]);
-        fphandles.push_back(vhandle[5]);
-        fphandles.push_back(vhandle[6]);
-        fphandles.push_back(vhandle[13]);
-        fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
-
-        fphandles.clear();
-        fphandles.push_back(vhandle[6]);
-        fphandles.push_back(vhandle[13]);
-        fphandles.push_back(vhandle[7]);
+        fphandles.push_back(vhandle[2]);
         fphandles.push_back(vhandle[0]);
         fh = m_Arrow->add_face(fphandles);
         std::cout << "face " << fh << std::endl;
 
-                fphandles.clear();
+        fphandles.clear();
+        fphandles.push_back(vhandle[4]);
         fphandles.push_back(vhandle[0]);
         fphandles.push_back(vhandle[1]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[3]);
+        fphandles.push_back(vhandle[0]);
+        fphandles.push_back(vhandle[4]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[4]);
+        fphandles.push_back(vhandle[2]);
+        fphandles.push_back(vhandle[3]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[1]);
+        fphandles.push_back(vhandle[2]);
+        fphandles.push_back(vhandle[4]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[7]);
+        fphandles.push_back(vhandle[5]);
+        fphandles.push_back(vhandle[6]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[5]);
+        fphandles.push_back(vhandle[7]);
+        fphandles.push_back(vhandle[8]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[11]);
+        fphandles.push_back(vhandle[9]);
+        fphandles.push_back(vhandle[10]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[9]);
+        fphandles.push_back(vhandle[11]);
+        fphandles.push_back(vhandle[12]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[12]);
         fphandles.push_back(vhandle[8]);
         fphandles.push_back(vhandle[7]);
         fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[11]);
+        fphandles.push_back(vhandle[7]);
+        fphandles.push_back(vhandle[6]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[10]);
+        fphandles.push_back(vhandle[6]);
+        fphandles.push_back(vhandle[5]);
+        fh = m_Arrow->add_face(fphandles);
+
+        fphandles.clear();
+        fphandles.push_back(vhandle[5]);
+        fphandles.push_back(vhandle[9]);
+        fphandles.push_back(vhandle[12]);
+        fh = m_Arrow->add_face(fphandles);
         std::cout << "face " << fh << std::endl;
-
-*/
-
 
         m_Arrow->update_normals();
 
         m_IdArrow = newObject;
         save(m_IdObject,"/Users/Juju/Documents/project/files/Arrow.ply");
+
+        m_DirArrow = Vector(0,0,1);
 
         //setObjectDrawMode(ACG::SceneGraph::DrawModes::SOLID_SMOOTH_SHADED,m_IdArrow);
 

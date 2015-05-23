@@ -21,7 +21,8 @@
 #include <Force.h>
 
 #include <cmath>
-#include <array>
+#include <stdlib.h>
+#include <Eigen/Eigen>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327950288
@@ -102,13 +103,15 @@ private:
     // value of the wind intensity
     double m_windIntensity;
     // vector of the wind direction
-    ShapeOp::Vector3 m_windDirection;
+    //ShapeOp::Vector3 m_windDirection;
+    Eigen::Vector3d m_windDirection;
     // file of the arrow mesh
     PolyMesh* m_Arrow;
     // object id of the arrow mesh
     int m_IdArrow;
     // vector representing the direction of the arrow
-    Vector m_DirArrow;
+    //Vector m_DirArrow;
+    Eigen::Vector3d m_DirArrow;
     // transformation matrix of the arrow
     ACG::Matrix4x4d m_matrix;
 
@@ -122,9 +125,11 @@ private:
     QPushButton* solveButton;
     QPushButton* dragButton;
     QSlider* windIntensitySlider;
-    QSlider* windXSlider;
-    QSlider* windYSlider;
-    QSlider* windZSlider;
+    QLineEdit* windIntensityEdit;
+    QDoubleSpinBox* windXBox;
+    QDoubleSpinBox* windYBox;
+    QDoubleSpinBox* windZBox;
+
     QCheckBox* arrowBox;
 
 public:
@@ -141,7 +146,7 @@ public:
     void setNewPositions();
 
     int createArrow();
-    void transformArrow(Vector Axe, double theta, Vector Translation);
+    void transformArrow();
 
 public slots:
     int addQuadrimesh();

@@ -28,10 +28,11 @@ void mmPlugin::initializePlugin()
     m_dragMode = 0;
     m_dragedVertex = 0;
     m_windIntensity = 0;
-    m_windDirection = ShapeOp::Vector3(1,0,0);
+    m_windDirection = Eigen::Vector3d(0,0,0);
+    m_DirArrow = Eigen::Vector3d(0,0,1);
     m_IdArrow = -1;
 
-
+    srand(0);
     //m_Draged.clear();
     //m_oldPos = QPoint(0,0,0);
     //m_newPos = QPoint(0,0,0);
@@ -83,26 +84,30 @@ void mmPlugin::initializePlugin()
     windIntensitySlider->setMaximum(10);
     windIntensitySlider->setDisabled(true);
 
-    windXSlider = new QSlider(toolBox);
-    windXSlider->setOrientation(Qt::Vertical);
-    windXSlider->setMinimum(-10);
-    windXSlider->setValue(10);
-    windXSlider->setMaximum(10);
-    windXSlider->setDisabled(true);
+    windIntensityEdit = new QLineEdit(toolBox);
+    windIntensityEdit->setReadOnly(true);
+    windIntensityEdit->setText(QString::number(m_windIntensity));
 
-    windYSlider = new QSlider(toolBox);
-    windYSlider->setOrientation(Qt::Vertical);
-    windYSlider->setMinimum(-10);
-    windYSlider->setValue(0);
-    windYSlider->setMaximum(10);
-    windYSlider->setDisabled(true);
+    windXBox = new QDoubleSpinBox(toolBox);
+    windXBox->setValue(0);
+    windXBox->setMaximum(1.0);
+    windXBox->setMinimum(-1.0);
+    windXBox->setSingleStep(0.01);
+    windXBox->setDisabled(true);
 
-    windZSlider = new QSlider(toolBox);
-    windZSlider->setOrientation(Qt::Vertical);
-    windZSlider->setMinimum(-10);
-    windZSlider->setValue(0);
-    windZSlider->setMaximum(10);
-    windZSlider->setDisabled(true);
+    windYBox = new QDoubleSpinBox(toolBox);
+    windYBox->setValue(0);
+    windYBox->setMaximum(1.0);
+    windYBox->setMinimum(-1.0);
+    windYBox->setSingleStep(0.01);
+    windYBox->setDisabled(true);
+
+    windZBox = new QDoubleSpinBox(toolBox);
+    windZBox->setValue(0);
+    windZBox->setMaximum(1.0);
+    windZBox->setMinimum(-1.0);
+    windZBox->setSingleStep(0.01);
+    windZBox->setDisabled(true);
 
     arrowBox = new QCheckBox(toolBox);
     arrowBox->setChecked(false);
@@ -122,28 +127,38 @@ void mmPlugin::initializePlugin()
 
     layout->addWidget( labelX,        1,1);
     layout->addWidget( sizeXSpin,     2,1);
+
     layout->addWidget( labelY,        1,2);
     layout->addWidget( sizeYSpin,     2,2);
+
     layout->addWidget( labelD,        1,3);
     layout->addWidget( discretizeSpin,2,3);
+
     layout->addWidget( loadButton,    2,4);
 
     layout->addWidget( labelF,        3,1);
     layout->addWidget( fixPointSpin,  4,1);
+
     layout->addWidget( pickButton,    4,2);
+
     layout->addWidget( dragButton,    4,3);
 
     layout->addWidget( solveButton,   5,1,1,2);
 
+    layout->addWidget( arrowBox,      6,1);
+
     layout->addWidget( labelWX,       6,2);
-    layout->addWidget( windXSlider,   7,2,3,1);
-    layout->addWidget( labelWY,       6,3);
-    layout->addWidget( windYSlider,   7,3,3,1);
-    layout->addWidget( labelWZ,       6,4);
-    layout->addWidget( windZSlider,   7,4,3,1);
+    layout->addWidget( windXBox,      6,3);
+
+    layout->addWidget( labelWY,       7,2);
+    layout->addWidget( windYBox,      7,3);
+
+    layout->addWidget( labelWZ,       8,2);
+    layout->addWidget( windZBox,      8,3);
+
     layout->addWidget( labelWI,       6,4,1,2);
     layout->addWidget( windIntensitySlider,7,4,1,2);
-    layout->addWidget( arrowBox,      6,1);
+    layout->addWidget( windIntensityEdit, 8,4);
 
     layout->addItem(new QSpacerItem(10,10,QSizePolicy::Expanding,QSizePolicy::Expanding),2,0,1,2);
 
@@ -156,9 +171,9 @@ void mmPlugin::initializePlugin()
     connect( pickButton, SIGNAL(clicked()), this, SLOT(pickVertex()));
     connect( dragButton, SIGNAL(clicked()), this, SLOT(dragVertex()));
     connect( solveButton, SIGNAL(clicked()), this, SLOT(solveOptimazation()));
-    connect( windXSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
-    connect( windYSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
-    connect( windZSlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
+    connect( windXBox, SIGNAL(valueChanged(double)), this, SLOT(changeWind()));
+    connect( windYBox, SIGNAL(valueChanged(double)), this, SLOT(changeWind()));
+    connect( windZBox, SIGNAL(valueChanged(double)), this, SLOT(changeWind()));
     connect( windIntensitySlider, SIGNAL(sliderReleased()), this, SLOT(changeWind()));
     connect( arrowBox, SIGNAL(toggled(bool)), this, SLOT(displayArrow()));
 
@@ -178,69 +193,6 @@ void mmPlugin::pluginsInitialized()
 void mmPlugin::slotAllCleared()
 {
     std::cout << "slotAllCleared" << std::endl;
-
-    /*
-    m_EdgesCons.clear();
-    m_LaplaceCons.clear();
-    m_VectorEdge.clear();
-    m_MV.resize(3,m_vertices);
-    m_MV.setZero();
-    m_list_vertex.reset();
-
-    //m_Draged.clear();
-    //m_oldPos = QPoint(0,0,0);
-    //m_newPos = QPoint(0,0,0);
-    //m_PickedMesh->clear();
-    */
-
-    m_vh0.clear();
-    m_fphandles.clear();
-    m_idFixed.clear();
-    m_idSphere.clear();
-    m_posFixed.clear();
-    m_hitPoint = OpenMesh::Vec3d(0,0,0);
-
-    m_IdObject = -1;
-    m_vertices = m_sizeX*m_sizeY;
-    m_edges = (m_sizeX-1)*m_sizeY + (m_sizeY-1)*m_sizeX;
-    m_faces = (m_sizeX - 1)*(m_sizeY - 1);
-    m_masse = 1.0;
-    m_length = 1.0;
-
-    m_FixPoint = 4;
-    m_discretize = 0;
-    m_sizeX = 5;
-    m_sizeY = 5;
-
-    m_pickMode = 0;
-    m_dragMode = 0;
-    m_dragedVertex = 0;
-    m_windIntensity = 0;
-    m_windDirection = ShapeOp::Vector3(1,0,0);
-
-    sizeXSpin->setValue(5);
-    sizeYSpin->setValue(5);
-    fixPointSpin->setValue(4);
-    discretizeSpin->setValue(0);
-    windIntensitySlider->setValue(0);
-    windXSlider->setValue(10);
-    windYSlider->setValue(0);
-    windZSlider->setValue(0);
-    loadButton->setEnabled(true);
-    sizeXSpin->setEnabled(true);
-    sizeYSpin->setEnabled(true);
-    discretizeSpin->setEnabled(true);
-    arrowBox->setChecked(false);
-
-    fixPointSpin->setDisabled(true);
-    pickButton->setDisabled(true);
-    solveButton->setDisabled(true);
-    dragButton->setDisabled(true);
-    windIntensitySlider->setDisabled(true);
-    windXSlider->setDisabled(true);
-    windYSlider->setDisabled(true);
-    windZSlider->setDisabled(true);
-    arrowBox->setCheckable(false);
 }
 
 //**********************************************************************************************
@@ -722,9 +674,9 @@ void mmPlugin::solveOptimazationInit()
     solveButton->setEnabled(true);
     dragButton->setEnabled(true);
     windIntensitySlider->setEnabled(true);
-    windXSlider->setEnabled(true);
-    windYSlider->setEnabled(true);
-    windZSlider->setEnabled(true);
+    windXBox->setEnabled(true);
+    windYBox->setEnabled(true);
+    windZBox->setEnabled(true);
     arrowBox->setCheckable(true);
 }
 
@@ -981,31 +933,23 @@ void mmPlugin::solveShape()
 
     for( int i = 0 ; i < m_VectorEdge.size() ; i++)
     {
-        double NWind = sqrt( m_windDirection[0]*m_windDirection[0] + m_windDirection[1]*m_windDirection[1] + m_windDirection[2]*m_windDirection[2]);
-
+        double NWind = m_windDirection.norm();
         double sinT = 1;
 
         if( NWind != 0 )
         {
-            PolyMesh::Normal EdgeVector = m_PickedMesh->calc_edge_vector(m_VectorEdge.at(i));
-
-            ShapeOp::Vector3 cross;
-            cross[0] = EdgeVector[1]*m_windDirection[2] - EdgeVector[2]*m_windDirection[1];
-            cross[1] = EdgeVector[2]*m_windDirection[0] - EdgeVector[0]*m_windDirection[2];
-            cross[2] = EdgeVector[0]*m_windDirection[1] - EdgeVector[1]*m_windDirection[0];
-
-            double Ncross = sqrt( cross[0]*cross[0] + cross[1]*cross[1] + cross[1]*cross[1]);
-            double NEdgeVector = sqrt( EdgeVector[0]*EdgeVector[0] + EdgeVector[1]*EdgeVector[1] + EdgeVector[2]*EdgeVector[2]);
+            PolyMesh::Normal normal = m_PickedMesh->calc_edge_vector(m_VectorEdge.at(i));
+            Eigen::Vector3d EdgeVector(normal[0],normal[1],normal[2]);
+            Eigen::Vector3d Crossp = EdgeVector.cross(m_windDirection);
+            double Ncross = Crossp.norm();
+            double NEdgeVector = EdgeVector.norm();
 
             sinT = Ncross/( NEdgeVector*NWind );
-
-            //std::cout << "Ncross: " << Ncross << " Nedge: " << NEdgeVector << " NWind: " << NWind << " sinT: " << sinT << std::endl;
         }
-        auto wind_force = std::make_shared<ShapeOp::VertexForce>(sinT*m_windDirection,i);
+        ShapeOp::Vector3 wind(m_windDirection[0],m_windDirection[1],m_windDirection[2]);
+        auto wind_force = std::make_shared<ShapeOp::VertexForce>(sinT*wind,i);
         s.addForces(wind_force);
     }
-
-
 
     // add laplacian constraint
     if( m_discretize == 0 )
@@ -1078,15 +1022,26 @@ void mmPlugin::dragVertex()
 //**********************************************************************************************
 void mmPlugin::changeWind()
 {
-    m_windIntensity = windIntensitySlider->value()/10.0;
+    // create random disturbances
+    double randomX = ((float)rand())/RAND_MAX*0.1-0.05;
+    double randomY = ((float)rand())/RAND_MAX*0.1-0.05;
+    double randomZ = ((float)rand())/RAND_MAX*0.1-0.05;
+    double randomI = ((float)rand())/RAND_MAX*0.1-0.5;
 
-    double x = windXSlider->value();
-    double y = windYSlider->value();
-    double z = windZSlider->value();
+    std::cout << randomI << " " << randomX << " " << randomY << " " << randomZ << std::endl;
 
-    m_windDirection = ShapeOp::Vector3(x,y,z);
+    m_windIntensity = windIntensitySlider->value();
+    windIntensityEdit->setText(QString::number(m_windIntensity));
 
+
+    double x = windXBox->value() + randomX;
+    double y = windYBox->value() + randomY;
+    double z = windZBox->value() + randomZ;
+
+    m_windDirection = Eigen::Vector3d(x,y,z);
     m_windDirection = m_windIntensity*m_windDirection;
+
+    transformArrow();
 
     std::cout << "wind: " << m_windDirection << std::endl;
 }
@@ -1096,60 +1051,122 @@ void mmPlugin::displayArrow()
     if( arrowBox->isChecked() == true )
     {
         createArrow();
-
-        //transformArrow(Vector(0,1,0),M_PI/2.0,Vector(-2,-2,0));
     }
     else if( arrowBox->isChecked() == false )
     {
-        //emit LoadSaveInterface::deleteObject(m_IdArrow);
-        //PluginFunctions::viewAll();
+        m_Arrow->clear();
+        emit updatedObject(m_IdArrow, UPDATE_GEOMETRY);
     }
 }
 
-void mmPlugin::transformArrow(Vector Axe, double theta, Vector Translation)
+void mmPlugin::transformArrow()
 {
-    // normalize the wind direction and arrow direction
-    Vector Wind = m_windDirection/(sqrt(m_windDirection[0]*m_windDirection[0],m_windDirection[1]*m_windDirection[1],m_windDirection[2]*m_windDirection[2]));
-    Vector Arrow = m_DirArrow/(sqrt(m_DirArrow[0]*m_DirArrow[0],m_DirArrow[1]*m_DirArrow[1],m_DirArrow[2]*m_DirArrow[2]));
+    Eigen::Vector3d VecB = m_windDirection;
 
-    // compute the cosT and sinT
-    double cosT = Arrow[0]*Wind[0] + Arrow[1]*Wind[1] + Arrow[2]*Wind[2];
-
-    Vector cross;
-    cross[0] = Arrow[1]*Wind[2] - Arrow[2]*Wind[1];
-    cross[1] = Arrow[2]*Wind[0] - Arrow[0]*Wind[2];
-    cross[2] = Arrow[0]*Wind[1] - Arrow[1]*Wind[0];
-    double sinT = sqrt(cross[0]*cross[0],cross[1]*cross[1],cross[2]*cross[2]);
-
-    // matrix F
-
-    // matrix F inverse
-
-    // matrix Rotation
-
-    /*double cosT = cos(theta);
-    double sinT = sin(theta);
-
-    m_matrix(0,3) = Translation[0];
-    m_matrix(1,3) = Translation[1];
-    m_matrix(2,3) = Translation[2];
-    m_matrix(3,0) = 0;
-    m_matrix(3,1) = 0;
-    m_matrix(3,2) = 0;
-    m_matrix(3,3) = 1;
-
-    m_matrix(0,0) = Axe[0]*1 + Axe[1]*cosT + Axe[2]*cosT; m_matrix(0,1) = -Axe[2]*sinT;                         m_matrix(0,2) = Axe[1]*sinT;
-    m_matrix(1,0) = Axe[2]*sinT;                          m_matrix(1,1) = Axe[0]*cosT + Axe[1]*1 + Axe[2]*cosT; m_matrix(1,2) = -Axe[0]*sinT;
-    m_matrix(2,0) = -Axe[1]*sinT;                         m_matrix(2,1) = Axe[0]*sinT;                          m_matrix(2,2) = Axe[0]*cosT + Axe[1]*cosT + Axe[2]*1;
-
-*/
-    PolyMesh::VertexIter v_it;
-    for (v_it  = m_Arrow->vertices_begin() ; v_it!=m_Arrow->vertices_end(); ++v_it)
+    if(VecB.norm() != 0 && arrowBox->isChecked() == true )
     {
-        m_Arrow->set_point(*v_it,m_matrix.transform_point(m_Arrow->point(*v_it)) );
-    }
+        VecB.normalize();
 
-    emit updatedObject(m_IdArrow, UPDATE_GEOMETRY);
+        Eigen::Vector3d VecA = m_DirArrow;
+        VecA.normalize();
+
+        Eigen::Vector3d VecK = VecA.cross(VecB);
+
+        Eigen::Vector3d A = VecA - VecK*VecK.dot(VecA);
+
+        Eigen::Vector3d B = VecK.cross(VecA);
+
+        Eigen::Vector3d C = VecB - VecK*VecK.dot(VecA);
+
+        double sinT = 0;
+        double cosT = 0;
+
+        if( A[0] != 0 )
+        {
+            if( (A[1]*B[0] - A[0]*B[1]) != 0 )
+            {
+                sinT = (A[1]*C[0] - A[0]*C[1])/(A[1]*B[0] - A[0]*B[1]);
+            }
+            else if( (A[2]*B[0] - A[0]*B[2]) != 0 )
+            {
+                sinT = (A[2]*C[0] - A[0]*C[2])/(A[2]*B[0] - A[0]*B[2]);
+            }
+
+            cosT = (C[0] - B[0]*sinT)/A[0];
+        }
+        else if( A[1] != 0 )
+        {
+            if( (A[0]*B[1] - A[1]*B[0]) != 0 )
+            {
+                sinT = (A[0]*C[1] - A[1]*C[0])/(A[0]*B[1] - A[1]*B[0]);
+            }
+            else if( (A[2]*B[1] - A[1]*B[2]) != 0 )
+            {
+                sinT = (A[2]*C[1] - A[1]*C[2])/(A[2]*B[1] - A[1]*B[2]);
+            }
+
+            cosT = (C[1] - B[1]*sinT)/A[1];
+        }
+        else if( A[2] != 0 )
+        {
+            if( (A[0]*B[2] - A[2]*B[0]) != 0 )
+            {
+                sinT = (A[0]*C[2] - A[2]*C[0])/(A[0]*B[2] - A[2]*B[0]);
+            }
+            else if( (A[1]*B[2] - A[2]*B[1]) != 0 )
+            {
+                sinT = (A[1]*C[2] - A[2]*C[1])/(A[1]*B[2] - A[2]*B[1]);
+            }
+
+            cosT = (C[2] - B[2]*sinT)/A[2];
+        }
+        else
+        {
+            std::cout << "problem" << std::endl;
+        }
+
+        Eigen::Matrix3d K(3,3);
+        K.setZero();
+        K(0,1) = -VecK[2]; K(0,2) = VecK[1]; K(1,2) = -VecK[0];
+        K(1,0) = VecK[2]; K(2,0) = -VecK[1]; K(2,1) = VecK[0];
+
+        Eigen::Matrix3d Id(3,3);
+        Id.setZero();
+        Id(0,0) = 1; Id(1,1) = 1; Id(2,2) = 1;
+
+        Eigen::Matrix3d Rot(3,3);
+        Rot = Id + sinT*K + (1-cosT)*K*K;
+
+        std::cout << "Error Arrow: " << std::endl;
+        std::cout << Rot*VecA - VecB << std::endl;
+
+        for(int i = 0 ; i < 3 ; i++ )
+        {
+            for(int j = 0 ; j < 3 ; j++ )
+            {
+                m_matrix(i,j) = Rot(i,j);
+            }
+        }
+        m_matrix(0,3) = 0;
+        m_matrix(1,3) = 0;
+        m_matrix(2,3) = 0;
+        m_matrix(3,3) = 1;
+        m_matrix(3,0) = 0;
+        m_matrix(3,1) = 0;
+        m_matrix(3,2) = 0;
+
+        PolyMesh::VertexIter v_it;
+
+        for (v_it  = m_Arrow->vertices_begin() ; v_it!=m_Arrow->vertices_end(); ++v_it)
+        {
+            m_Arrow->set_point(*v_it,m_matrix.transform_point(m_Arrow->point(*v_it)) );
+        }
+
+        emit updatedObject(m_IdArrow, UPDATE_GEOMETRY);
+
+        m_DirArrow = B;
+   }
+
 }
 
 int mmPlugin::createArrow()
@@ -1278,16 +1295,14 @@ int mmPlugin::createArrow()
         fphandles.push_back(vhandle[9]);
         fphandles.push_back(vhandle[12]);
         fh = m_Arrow->add_face(fphandles);
-        std::cout << "face " << fh << std::endl;
+        //std::cout << "face " << fh << std::endl;
 
         m_Arrow->update_normals();
 
         m_IdArrow = newObject;
         save(m_IdObject,"/Users/Juju/Documents/project/files/Arrow.ply");
 
-        m_DirArrow = Vector(0,0,1);
-
-        //setObjectDrawMode(ACG::SceneGraph::DrawModes::SOLID_SMOOTH_SHADED,m_IdArrow);
+        m_DirArrow = Eigen::Vector3d(0,0,1);
 
         emit updatedObject(m_IdArrow,UPDATE_ALL);
 

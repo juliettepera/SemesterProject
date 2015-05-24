@@ -103,17 +103,17 @@ private:
     // value of the wind intensity
     double m_windIntensity;
     // vector of the wind direction
-    //ShapeOp::Vector3 m_windDirection;
     Eigen::Vector3d m_windDirection;
     // file of the arrow mesh
     PolyMesh* m_Arrow;
     // object id of the arrow mesh
     int m_IdArrow;
     // vector representing the direction of the arrow
-    //Vector m_DirArrow;
     Eigen::Vector3d m_DirArrow;
     // transformation matrix of the arrow
     ACG::Matrix4x4d m_matrix;
+    // value for the time for the animation
+    int m_time;
 
 //****INTERFACE****
     QSpinBox* sizeXSpin;
@@ -129,8 +129,9 @@ private:
     QDoubleSpinBox* windXBox;
     QDoubleSpinBox* windYBox;
     QDoubleSpinBox* windZBox;
-
     QCheckBox* arrowBox;
+    QPushButton* animationButton;
+    QSpinBox* timeSpin;
 
 public:
     // BaseInterface
@@ -144,9 +145,7 @@ public:
     void getPoints();
     void solveShape();
     void setNewPositions();
-
     int createArrow();
-    void transformArrow();
 
 public slots:
     int addQuadrimesh();
@@ -157,7 +156,8 @@ public slots:
     void solveOptimazation();
     void dragVertex();
     void changeWind();
-    void displayArrow();
+    void animate();
+    void changeTime();
 
 private slots:
     // BaseInterface

@@ -108,12 +108,11 @@ private:
     PolyMesh* m_Arrow;
     // object id of the arrow mesh
     int m_IdArrow;
-    // vector representing the direction of the arrow
-    Eigen::Vector3d m_DirArrow;
     // transformation matrix of the arrow
     ACG::Matrix4x4d m_matrix;
     // value for the time for the animation
     int m_time;
+
 
 //****INTERFACE****
     QSpinBox* sizeXSpin;
@@ -142,8 +141,8 @@ public:
     void discretizeLenght();
     void findSelectVertex_fixed();
     void findSelectVertex_draged();
-    void getPoints();
-    void solveShape();
+    void getPointsInit();
+    void solveShape(bool dynamic, int time, double time_step);
     void setNewPositions();
     int createArrow();
 
@@ -163,13 +162,9 @@ private slots:
     // BaseInterface
     void initializePlugin();
     void pluginsInitialized();
-    void slotAllCleared();
-
 
     // MouseInterface
     void slotMouseEvent(QMouseEvent* _event);
-
-
 
 signals:
     //BaseInterface

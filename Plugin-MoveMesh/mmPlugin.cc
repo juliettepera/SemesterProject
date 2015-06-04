@@ -2,7 +2,6 @@
 
 void mmPlugin::initializePlugin()
 {
-    //m_PickedMesh;
     m_vh0.clear();
     m_fphandles.clear();
     m_IdObject = -1;
@@ -14,18 +13,14 @@ void mmPlugin::initializePlugin()
     m_masse = 1;
     m_length = 1;
     m_discretize = 0;
-    //m_list_vertex;
     m_idFixed.clear();
     m_posFixed.clear();
     m_idSphere.clear();
     m_hitPoint = OpenMesh::Vec3d(0,0,0);
-    //m_oldPos = new QPoint(0,0,0);
-    //m_newPos = new QPoint(0,0,0);
     m_FixPoint = 4;
     m_pickMode = 0;
     m_dragMode = 0;
     m_dragedVertex = -1;
-    //m_Draged;
     m_MV.resize(3,m_vertices);
     m_MV.setZero();
     m_EdgesCons.clear();
@@ -33,9 +28,7 @@ void mmPlugin::initializePlugin()
     m_LaplaceCons.clear();
     m_windIntensity = 0;
     m_windDirection = Eigen::Vector3d(0,0,0);
-    //PolyMesh* m_Arrow;
     m_IdArrow = -1;
-    m_DirArrow = Eigen::Vector3d(0,0,1);
     m_matrix.clear();
     m_time = 0;
 
@@ -207,11 +200,6 @@ void mmPlugin::pluginsInitialized()
     loadButton->setEnabled(true);
 }
 
-void mmPlugin::slotAllCleared()
-{
-    std::cout << "slotAllCleared" << std::endl;
-}
-
 //**********************************************************************************************
 // Create a new quad mesh composed of X vertices, then save it and load it to the viewer
 // Code inspired from the PrimitivesGenerator plugin
@@ -294,7 +282,7 @@ int mmPlugin::addQuadrimesh()
         m_PickedMesh->update_normals();
 
         m_IdObject = newObject;
-        save(m_IdObject,"/Users/Juju/Documents/project/files/Quadmesh.ply");
+        save(m_IdObject,"Quadmesh.ply");
 
         discretizeLenght();
 
@@ -470,7 +458,7 @@ void mmPlugin::discretizeLenght()
             m_PickedMesh = newMesh;
 
             m_vertices = m_PickedMesh->n_vertices();
-            m_edges = m_PickedMesh->n_edges();
+             m_edges = m_PickedMesh->n_edges();
             m_faces = m_PickedMesh->n_faces();
 
             m_masse = double(m_sizeX*m_sizeY)/double(m_vertices);
@@ -480,7 +468,7 @@ void mmPlugin::discretizeLenght()
 
             m_IdObject = newObject;
 
-            save(m_IdObject,"/Users/Juju/Documents/project/files/QuadmeshDiscretized.ply");
+            save(m_IdObject,"QuadmeshDiscretized.ply");
         }
     }
 }
@@ -684,8 +672,9 @@ void mmPlugin::findSelectVertex_draged()
 //**********************************************************************************************
 void mmPlugin::solveOptimazationInit()
 {
-    getPoints();
-    solveShape();
+    getPointsInit();
+    solveShape( false , 0, 0);
+
     setNewPositions();
 
     solveButton->setEnabled(true);
@@ -719,11 +708,11 @@ void mmPlugin::solveOptimazation()
         nbV++;
     }
 
-    solveShape();
+    solveShape( false , 0, 0);
     setNewPositions();
 }
 
-void mmPlugin::getPoints()
+void mmPlugin::getPointsInit()
 {
     m_MV.resize(3,m_vertices);
     m_MV.setZero();
@@ -893,12 +882,12 @@ void mmPlugin::getPoints()
     }
 }
 
-void mmPlugin::solveShape()
+void mmPlugin::solveShape( bool dynamic, int time, double time_step)
 {
     ShapeOp::Solver s;
     s.setPoints(m_MV);
     ShapeOp::Scalar edgelength_weight = 1000;
-    ShapeOp::Scalar closeness_weight = 200;
+    ShapeOp::Scalar closeness_weight = 500;
     ShapeOp::Scalar laplacian_weight = 200;
 
     //add a closeness constraint to the fixed vertex.
@@ -933,10 +922,11 @@ void mmPlugin::solveShape()
 
     //add gravity force
     {
-        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-0.5));
+        auto gravity_force = std::make_shared<ShapeOp::GravityForce>(ShapeOp::Vector3(0,0,-1));
         s.addForces(gravity_force);
     }
 
+    // add wind force
     for( int i = 0 ; i < m_VectorEdge.size() ; i++)
     {
         ShapeOp::Vector3 wind(m_windDirection[0],m_windDirection[1],m_windDirection[2]);
@@ -986,10 +976,40 @@ void mmPlugin::solveShape()
         }
     }
 
-    s.initialize(false,m_masse);
-    s.solve(50);
-    m_MV = s.getPoints();
 
+    if( dynamic == false )
+    {
+        s.initialize(false,m_masse);
+        s.solve(50);
+        m_MV = s.getPoints();
+    }
+    else
+    {
+        s.initialize(true,m_masse,1.0,time_step);
+        int NBit = time / time_step;
+
+        for( int i = 0; i < NBit ; i++ )
+        {
+            s.solve(50);
+            m_MV = s.getPoints();
+
+            PolyMesh::VertexIter v_it;
+            PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+            OpenMesh::Vec3d NewPoint;
+
+            int nbV = 0;
+            for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
+            {
+                NewPoint[0] = m_MV(0,nbV);
+                NewPoint[1] = m_MV(1,nbV);
+                NewPoint[2] = m_MV(2,nbV);
+                m_PickedMesh->set_point(*v_it,NewPoint);
+                nbV++;
+            }
+            m_PickedMesh->update_normals();
+            emit updatedObject(m_IdObject,UPDATE_GEOMETRY);
+        }
+    }
 }
 
 void mmPlugin::setNewPositions()
@@ -1008,8 +1028,7 @@ void mmPlugin::setNewPositions()
         nbV++;
     }
 
-
-    save(m_IdObject,"/Users/Juju/Documents/project/files/NewShape.obj");
+    save(m_IdObject,"NewShape.obj");
     PluginFunctions::setDrawMode(ACG::SceneGraph::DrawModes::WIREFRAME);
     emit updatedObject(m_IdObject,UPDATE_ALL);
     PluginFunctions::viewAll();
@@ -1030,20 +1049,12 @@ void mmPlugin::dragVertex()
 void mmPlugin::changeWind()
 {
     // create random disturbances
-    /*double randomX = ((float)rand())/RAND_MAX*0.1-0.05;
+    double randomX = ((float)rand())/RAND_MAX*0.1-0.05;
     double randomY = ((float)rand())/RAND_MAX*0.1-0.05;
     double randomZ = ((float)rand())/RAND_MAX*0.1-0.05;
-    double randomI = ((float)rand())/RAND_MAX*0.1-0.5;*/
 
-    double randomX = 0;
-    double randomY = 0;
-    double randomZ = 0;
-
-    //std::cout << randomI << " " << randomX << " " << randomY << " " << randomZ << std::endl;
-
-    m_windIntensity = windIntensitySlider->value();
+    m_windIntensity = windIntensitySlider->value()/10.0;
     windIntensityEdit->setText(QString::number(m_windIntensity));
-
 
     double x = windXBox->value() + randomX;
     double y = windYBox->value() + randomY;
@@ -1052,12 +1063,12 @@ void mmPlugin::changeWind()
     m_windDirection = Eigen::Vector3d(x,y,z);
     m_windDirection = m_windIntensity*m_windDirection;
 
+    //std::cout << "wind: " << m_windDirection << std::endl;
+
     if( arrowBox->isChecked() == true && m_windDirection.norm() != 0 )
     {
         createArrow();
     }
-
-    //std::cout << "wind: " << m_windDirection << std::endl;
 }
 
 int mmPlugin::createArrow()
@@ -1087,11 +1098,6 @@ int mmPlugin::createArrow()
 
     Eigen::Vector3d V = m_windDirection + Eigen::Vector3d(0,1,2);
 
-    if(V.dot(A) == 0 )
-    {
-        std::cout << "colinear " << std::endl;
-    }
-
     Eigen::Vector3d B(0,0,0);
     B = A.cross(V);
     B.normalize();
@@ -1104,6 +1110,7 @@ int mmPlugin::createArrow()
     std::vector<PolyMesh::VertexHandle> vhandle;
     std::vector<PolyMesh::VertexHandle> fphandles;
     PolyMesh::FaceHandle fh;
+    PolyMesh::HalfedgeHandle heh;
 
     vhandle.resize(26);
 
@@ -1226,66 +1233,17 @@ int mmPlugin::createArrow()
     fphandles.push_back(vhandle[24]);
     fh = m_Arrow->add_face(fphandles);
 
-    /*fphandles.clear();
-    fphandles.push_back(vhandle[1]);
-    fphandles.push_back(vhandle[9]);
-    fphandles.push_back(vhandle[10]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[2]);
-    fphandles.push_back(vhandle[10]);
-    fphandles.push_back(vhandle[11]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[3]);
-    fphandles.push_back(vhandle[11]);
-    fphandles.push_back(vhandle[12]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[4]);
-    fphandles.push_back(vhandle[12]);
-    fphandles.push_back(vhandle[13]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[5]);
-    fphandles.push_back(vhandle[13]);
-    fphandles.push_back(vhandle[14]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[6]);
-    fphandles.push_back(vhandle[14]);
-    fphandles.push_back(vhandle[15]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[7]);
-    fphandles.push_back(vhandle[15]);
-    fphandles.push_back(vhandle[16]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;
-
-    fphandles.clear();
-    fphandles.push_back(vhandle[8]);
-    fphandles.push_back(vhandle[16]);
-    fphandles.push_back(vhandle[9]);
-    fh = m_Arrow->add_face(fphandles);
-    std::cout << "face " << fh << std::endl;*/
+    heh = m_Arrow->new_edge(vhandle[1],vhandle[9]);
+    heh = m_Arrow->new_edge(vhandle[2],vhandle[10]);
+    heh = m_Arrow->new_edge(vhandle[3],vhandle[11]);
+    heh = m_Arrow->new_edge(vhandle[4],vhandle[12]);
+    heh = m_Arrow->new_edge(vhandle[5],vhandle[13]);
+    heh = m_Arrow->new_edge(vhandle[6],vhandle[14]);
+    heh = m_Arrow->new_edge(vhandle[7],vhandle[15]);
+    heh = m_Arrow->new_edge(vhandle[8],vhandle[16]);
 
     m_Arrow->update_normals();
-    save(m_IdObject,"/Users/Juju/Documents/project/files/Arrow.ply");
-
-    //m_DirArrow = Eigen::Vector3d(0,0,1);
+    save(m_IdObject,"Arrow.ply");
 
     emit updatedObject(m_IdArrow,UPDATE_ALL);
     PluginFunctions::viewAll();
@@ -1308,7 +1266,27 @@ void mmPlugin::changeTime()
 
 void mmPlugin::animate()
 {
-    std::cout << "animation" << std::endl;
+    m_MV.resize(3,m_vertices);
+    m_MV.setZero();
+
+    // GET ALL THE VERTICES
+    PolyMesh::VertexIter v_it;
+    PolyMesh::VertexIter v_end = m_PickedMesh->vertices_end();
+    OpenMesh::Vec3d p;
+
+    int nbV = 0;
+    for( v_it = m_PickedMesh->vertices_begin(); v_it != v_end; v_it++ )
+    {
+        p = m_PickedMesh->point(*v_it);
+
+        m_MV(0,nbV) = p[0];
+        m_MV(1,nbV) = p[1];
+        m_MV(2,nbV) = p[2];
+        nbV++;
+    }
+
+    solveShape( true, m_time, 0.5);
+    setNewPositions();
 }
 
 //**********************************************************************************************
